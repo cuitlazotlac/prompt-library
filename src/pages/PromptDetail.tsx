@@ -1,36 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Container,
-  Typography,
-  Paper,
-  Box,
-  Stack,
-  Chip,
-  IconButton,
-  Button,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Tooltip,
-} from '@mui/material';
-import {
-  Favorite,
-  FavoriteBorder,
-  ContentCopy,
-  Edit,
-  Delete,
-  Flag,
-  Star,
-} from '@mui/icons-material';
-import { doc, getDoc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { useAuth } from '../contexts/AuthContext';
-import { Prompt } from '../types';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { Copy, Heart, Edit, Trash2, Flag } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
+import { Prompt } from '@/types';
 import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
 export default function PromptDetail() {
   const { id } = useParams<{ id: string }>();
@@ -38,7 +18,6 @@ export default function PromptDetail() {
   const { user } = useAuth();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [hasVoted, setHasVoted] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -50,17 +29,19 @@ export default function PromptDetail() {
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
-          setPrompt({ id: docSnap.id, ...docSnap.data() } as Prompt);
+          const data = docSnap.data();
+          setPrompt({
+            id: docSnap.id,
+            ...data,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            updatedAt: data.updatedAt?.toDate() || new Date(),
+          } as Prompt);
           
-          // Check if user has favorited or voted
+          // Check if user has favorited
           if (user) {
-            const favoriteRef = doc(db, 'favorites', `${user.uid}_${id}`);
+            const favoriteRef = doc(db, 'favorites', user.uid, 'prompts', id);
             const favoriteSnap = await getDoc(favoriteRef);
             setIsFavorite(favoriteSnap.exists());
-            
-            const voteRef = doc(db, 'votes', `${user.uid}_${id}`);
-            const voteSnap = await getDoc(voteRef);
-            setHasVoted(voteSnap.exists());
           }
         } else {
           toast.error('Prompt not found');
@@ -77,6 +58,7 @@ export default function PromptDetail() {
   }, [id, user, navigate]);
 
   const handleCopy = async () => {
+    if (!prompt) return;
     try {
       await navigator.clipboard.writeText(prompt.content);
       toast.success('Prompt copied to clipboard!');
@@ -90,16 +72,14 @@ export default function PromptDetail() {
     if (!user || !prompt) return;
 
     try {
-      const favoriteRef = doc(db, 'favorites', `${user.uid}_${prompt.id}`);
+      const favoriteRef = doc(db, 'favorites', user.uid, 'prompts', prompt.id);
       if (isFavorite) {
         await deleteDoc(favoriteRef);
         setIsFavorite(false);
         toast.success('Removed from favorites');
       } else {
-        await updateDoc(favoriteRef, {
-          userId: user.uid,
-          promptId: prompt.id,
-          createdAt: new Date(),
+        await setDoc(favoriteRef, {
+          timestamp: new Date(),
         });
         setIsFavorite(true);
         toast.success('Added to favorites');
@@ -110,33 +90,14 @@ export default function PromptDetail() {
     }
   };
 
-  const handleVote = async () => {
-    if (!user || !prompt || hasVoted) return;
-
-    try {
-      const voteRef = doc(db, 'votes', `${user.uid}_${prompt.id}`);
-      await updateDoc(voteRef, {
-        userId: user.uid,
-        promptId: prompt.id,
-        vote: 1,
-        createdAt: new Date(),
-      });
-      
-      await updateDoc(doc(db, 'prompts', prompt.id), {
-        upvotes: increment(1),
-      });
-      
-      setHasVoted(true);
-      setPrompt(prev => prev ? { ...prev, upvotes: prev.upvotes + 1 } : null);
-      toast.success('Vote recorded!');
-    } catch (error) {
-      console.error('Error voting:', error);
-      toast.error('Failed to record vote');
-    }
-  };
-
   const handleDelete = async () => {
-    if (!prompt || !user || prompt.authorId !== user.uid) return;
+    if (!prompt || !user) return;
+
+    const promptUserId = prompt.authorId;
+    if (!promptUserId || (promptUserId !== user.uid && !user.isAdmin)) {
+      toast.error("You don't have permission to delete this prompt");
+      return;
+    }
 
     try {
       await deleteDoc(doc(db, 'prompts', prompt.id));
@@ -148,142 +109,210 @@ export default function PromptDetail() {
     }
   };
 
+  const handleEdit = () => {
+    if (!prompt || !user) return;
+
+    const promptUserId = prompt.authorId;
+    if (!promptUserId || (promptUserId !== user.uid && !user.isAdmin)) {
+      toast.error("You don't have permission to edit this prompt");
+      return;
+    }
+
+    navigate(`/edit/${prompt.id}`);
+  };
+
   if (!prompt) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-lg text-muted-foreground">Loading...</p>
+      </div>
+    );
   }
 
   const isAuthor = user?.uid === prompt.authorId;
   const isAdmin = user?.isAdmin;
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Paper sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            {prompt.title}
-          </Typography>
-        </Box>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-          <Stack direction="row" spacing={1}>
-            {user && (
-              <IconButton onClick={handleFavorite} title={isFavorite ? "Remove from favorites" : "Add to favorites"}>
-                {isFavorite ? <Favorite color="error" /> : <FavoriteBorder />}
-              </IconButton>
-            )}
-            {!hasVoted && user && (
-              <IconButton onClick={handleVote} title="Upvote">
-                <Star />
-              </IconButton>
-            )}
-            {isAuthor && (
-              <>
-                <IconButton onClick={() => navigate(`/edit/${prompt.id}`)} title="Edit">
-                  <Edit />
-                </IconButton>
-                <IconButton onClick={() => setDeleteDialogOpen(true)} title="Delete">
-                  <Delete />
-                </IconButton>
-              </>
-            )}
-            {isAdmin && (
-              <IconButton title="Flag content">
-                <Flag />
-              </IconButton>
-            )}
-          </Stack>
-        </Stack>
+    <div className="container max-w-4xl py-8">
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/">Home</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{prompt?.title || 'Loading...'}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
-        <Typography variant="body1" color="text.secondary" paragraph>
-          {prompt.description}
-        </Typography>
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle className="text-3xl">{prompt.title}</CardTitle>
+              <CardDescription className="mt-2">
+                Created by {prompt.authorName || 'Anonymous'}
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              {user && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleFavorite}
+                        className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
+                      >
+                        <Heart className={isFavorite ? "fill-current" : ""} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {user && (isAuthor || isAdmin) && (
+                <>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={handleEdit}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Edit prompt</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteDialogOpen(true)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Delete prompt</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </>
+              )}
+              {isAdmin && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Flag className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Flag content</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <h3 className="mb-2 font-semibold">Description</h3>
+            <p className="text-muted-foreground">{prompt.description}</p>
+          </div>
 
-        <Stack direction="row" spacing={1} mb={2}>
-          <Chip label={prompt.category} color="primary" />
-          {prompt.modelType.map((model) => (
-            <Chip key={model} label={model} />
-          ))}
-          {prompt.tags.map((tag) => (
-            <Chip key={tag} label={tag} variant="outlined" />
-          ))}
-        </Stack>
-
-        <Typography variant="body2" color="text.secondary">
-          By {prompt.authorName} • {prompt.upvotes} upvotes
-        </Typography>
-
-        <Divider sx={{ my: 3 }} />
-
-        <Box sx={{ mb: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">
-              Prompt Content
-            </Typography>
-            <Tooltip title="Copy prompt">
-              <IconButton 
-                onClick={handleCopy} 
-                size="small"
-                sx={{ 
-                  bgcolor: 'background.paper',
-                  '&:hover': { bgcolor: 'action.hover' }
-                }}
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
+              {prompt.category}
+            </div>
+            {prompt.modelType.map((model) => (
+              <div
+                key={model}
+                className="rounded-full bg-secondary/10 px-3 py-1 text-sm text-secondary-foreground"
               >
-                <ContentCopy />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
-            <Typography
-              component="pre"
-              sx={{
-                whiteSpace: 'pre-wrap',
-                fontFamily: 'monospace',
-                m: 0,
-              }}
-            >
-              {prompt.content}
-            </Typography>
-          </Paper>
-        </Box>
+                {model}
+              </div>
+            ))}
+            {prompt.tags.map((tag) => (
+              <div
+                key={tag}
+                className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
+              >
+                {tag}
+              </div>
+            ))}
+          </div>
 
-        {prompt.usageTips && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Usage Tips
-            </Typography>
-            <Typography variant="body1">
-              {prompt.usageTips}
-            </Typography>
-          </Box>
-        )}
+          <div>
+            <h3 className="mb-2 font-semibold">Prompt Content</h3>
+            <div className="relative rounded-lg bg-muted p-4">
+              <pre className="whitespace-pre-wrap text-sm">{prompt.content}</pre>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-2"
+                onClick={handleCopy}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
 
-        {prompt.recommendedModels && (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Recommended Models
-            </Typography>
-            <Stack direction="row" spacing={1}>
-              {prompt.recommendedModels.map((model) => (
-                <Chip key={model} label={model} variant="outlined" />
-              ))}
-            </Stack>
-          </Box>
-        )}
-      </Paper>
+          {prompt.usageTips && (
+            <div>
+              <h3 className="mb-2 font-semibold">Usage Tips</h3>
+              <p className="text-muted-foreground">{prompt.usageTips}</p>
+            </div>
+          )}
 
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Delete Prompt</DialogTitle>
+          {prompt.recommendedModels && prompt.recommendedModels.length > 0 && (
+            <div>
+              <h3 className="mb-2 font-semibold">Recommended Models</h3>
+              <div className="flex flex-wrap gap-2">
+                {prompt.recommendedModels.map((model) => (
+                  <div
+                    key={model}
+                    className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
+                  >
+                    {model}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete this prompt? This action cannot be undone.
-          </Typography>
+          <DialogHeader>
+            <DialogTitle>Delete Prompt</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this prompt? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Container>
+    </div>
   );
 } 
