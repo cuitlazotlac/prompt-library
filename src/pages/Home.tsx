@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { collection, query, orderBy, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
-import { Plus } from 'lucide-react';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import { db } from '@/lib/firebase';
 import { Prompt } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { PromptCard } from '@/components/PromptCard';
 import toast from 'react-hot-toast';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 const categories = ['All', 'Writing', 'Coding', 'Analysis', 'Creative', 'Business'];
 const modelTypes = ['ChatGPT', 'Claude', 'Gemini', 'All'];
@@ -31,7 +34,9 @@ export function Home({ searchQuery }: HomeProps) {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
+        modelType: Array.isArray(doc.data().modelType) ? doc.data().modelType : [doc.data().modelType].filter(Boolean),
+        tags: doc.data().tags || [],
       })) as Prompt[];
     }
   });
@@ -51,17 +56,27 @@ export function Home({ searchQuery }: HomeProps) {
     mutationFn: async ({ promptId, isFavorite }: { promptId: string; isFavorite: boolean }) => {
       if (!user) throw new Error('User not authenticated');
       
+      // Ensure the parent document exists
+      const userFavoritesRef = doc(db, 'favorites', user.uid);
+      await setDoc(userFavoritesRef, { lastUpdated: new Date() }, { merge: true });
+      
       const favoriteRef = doc(db, 'favorites', user.uid, 'prompts', promptId);
       
       if (isFavorite) {
         await deleteDoc(favoriteRef);
       } else {
-        await setDoc(favoriteRef, { timestamp: new Date() });
+        await setDoc(favoriteRef, {
+          promptId,
+          timestamp: new Date(),
+        });
       }
+      
+      // Return the action for the success handler
+      return { isFavorite };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['favorites', user?.uid] });
-      toast.success('Favorites updated successfully');
+      toast.success(data.isFavorite ? 'Removed from favorites' : 'Added to favorites');
     },
     onError: (error) => {
       console.error('Error toggling favorite:', error);
@@ -69,13 +84,12 @@ export function Home({ searchQuery }: HomeProps) {
     }
   });
 
-  const handleFavorite = (promptId: string) => {
+  const handleFavorite = (promptId: string, isCurrentlyFavorite: boolean) => {
     if (!user) {
-      toast.error('Please log in to add favorites');
+      toast.error('You must be logged in to favorite prompts');
       return;
     }
-    const isFavorite = favorites?.has(promptId) ?? false;
-    toggleFavoriteMutation.mutate({ promptId, isFavorite });
+    toggleFavoriteMutation.mutate({ promptId, isFavorite: isCurrentlyFavorite });
   };
 
   const filteredPrompts = prompts?.filter(prompt => {
@@ -130,12 +144,11 @@ export function Home({ searchQuery }: HomeProps) {
       </div>
 
       {user && (
-        <Button
-          onClick={() => navigate('/create')}
-          className="mb-8 gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Create New Prompt
+        <Button asChild>
+          <Link to="/create">
+            <PlusIcon className="mr-2 h-5 w-5" />
+            Create Prompt
+          </Link>
         </Button>
       )}
 

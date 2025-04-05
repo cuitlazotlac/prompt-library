@@ -23,6 +23,10 @@ export interface Prompt {
   isFlagged: boolean;
   usageTips?: string;
   recommendedModels?: string[];
+  images?: {
+    url: string;
+    name: string;
+  }[];
 }
 
 export interface UserFavorite {
