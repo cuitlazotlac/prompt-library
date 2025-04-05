@@ -127,7 +127,9 @@ export function Profile() {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
+        modelType: Array.isArray(doc.data().modelType) ? doc.data().modelType : [doc.data().modelType].filter(Boolean),
+        tags: doc.data().tags || [],
       })) as Prompt[];
     }
   });
@@ -135,16 +137,20 @@ export function Profile() {
   const { data: favorites, isLoading: favoritesLoading } = useQuery({
     queryKey: ["userFavorites", user.uid],
     queryFn: async () => {
-      const q = query(collection(db, "favorites"), where("userId", "==", user.uid));
-      const querySnapshot = await getDocs(q);
+      const favoritesRef = collection(db, 'favorites', user.uid, 'prompts');
+      const querySnapshot = await getDocs(favoritesRef);
+      
       const favoritePrompts = await Promise.all(
         querySnapshot.docs.map(async (favoriteDoc) => {
-          const promptRef = doc(db, "prompts", favoriteDoc.data().promptId);
+          const promptRef = doc(db, "prompts", favoriteDoc.id);
           const promptSnap = await getDoc(promptRef);
           if (!promptSnap.exists()) return null;
+          const data = promptSnap.data();
           return {
             id: promptSnap.id,
-            ...promptSnap.data(),
+            ...data,
+            modelType: Array.isArray(data.modelType) ? data.modelType : [data.modelType].filter(Boolean),
+            tags: data.tags || [],
           } as Prompt;
         })
       );

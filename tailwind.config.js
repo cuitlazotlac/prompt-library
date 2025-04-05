@@ -13,13 +13,16 @@ module.exports = {
       },
     },
     extend: {
+      fontFamily: {
+        mono: ['Berkeley Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: {
           DEFAULT: 'var(--background)',
-          dark: '#1D1D1D',
+          dark: '#1C1C1C',
           light: '#F4EDE6',
         },
         foreground: "hsl(var(--foreground))",
@@ -73,5 +76,5 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 } 
