@@ -8,13 +8,24 @@ import { Prompt } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { PromptCard } from '@/components/PromptCard';
+import { ModelIcon } from '@/components/ModelIcon';
 import toast from 'react-hot-toast';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import '@/styles/model-colors.css';
 
 const categories = ['All', 'Writing', 'Coding', 'Analysis', 'Creative', 'Business'];
-const modelTypes = ['ChatGPT', 'Claude', 'Gemini', 'All'];
+const modelTypes = [
+  'All AI Models',
+  'ChatGPT',
+  'Claude',
+  'Gemini',
+  'Mistral',
+  'Grok',
+  'LLaMA',
+  'Midjourney'
+];
 
 interface HomeProps {
   searchQuery: string;
@@ -131,16 +142,23 @@ export function Home({ searchQuery }: HomeProps) {
       </div>
 
       <div className="mb-8 flex flex-wrap gap-2">
-        {modelTypes.map((model) => (
-          <Button
-            key={model}
-            variant={selectedModel === model ? 'default' : 'outline'}
-            onClick={() => setSelectedModel(model)}
-            className="rounded-full"
-          >
-            {model}
-          </Button>
-        ))}
+        {modelTypes.map((model) => {
+          const modelKey = model.toLowerCase().replace(/\s+/g, '-');
+          return (
+            <Button
+              key={model}
+              variant="outline"
+              onClick={() => setSelectedModel(model === 'All AI Models' ? 'All' : model)}
+              className={`rounded-full gap-2 ${
+                model === 'All AI Models' ? 'model-button-all-ai-models' : `model-button model-button-${modelKey}`
+              }`}
+              data-state={selectedModel === (model === 'All AI Models' ? 'All' : model) ? 'active' : undefined}
+            >
+              <ModelIcon model={model} className={model === 'All AI Models' ? 'icon' : ''} />
+              <span>{model}</span>
+            </Button>
+          );
+        })}
       </div>
 
       {user && (
