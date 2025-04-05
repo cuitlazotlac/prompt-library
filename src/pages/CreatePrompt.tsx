@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { ModelIcon } from '@/components/ModelIcon';
 import {
   Select,
   SelectContent,
@@ -16,9 +17,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import '@/styles/model-colors.css';
 
 const categories = ['Writing', 'Coding', 'Analysis', 'Creative', 'Business'];
-const modelTypes = ['ChatGPT', 'Claude', 'Gemini'];
+const modelTypes = [
+  'All AI Models',
+  'ChatGPT',
+  'Claude',
+  'Gemini',
+  'Mistral',
+  'Grok',
+  'LLaMA',
+  'Midjourney'
+];
 
 interface CreatePromptFormData {
   title: string;
@@ -84,7 +95,10 @@ export function CreatePrompt() {
       <h1 className="mb-8 text-3xl font-bold">Create New Prompt</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="title">Title</Label>
+          <div className="flex items-baseline justify-between">
+            <Label htmlFor="title">Title</Label>
+            <span className="text-sm text-muted-foreground">(Required)</span>
+          </div>
           <Input
             id="title"
             value={formData.title}
@@ -94,7 +108,10 @@ export function CreatePrompt() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
+          <div className="flex items-baseline justify-between">
+            <Label htmlFor="description">Description</Label>
+            <span className="text-sm text-muted-foreground">(Required)</span>
+          </div>
           <Textarea
             id="description"
             value={formData.description}
@@ -104,7 +121,10 @@ export function CreatePrompt() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="content">Prompt Content</Label>
+          <div className="flex items-baseline justify-between">
+            <Label htmlFor="content">Prompt Content</Label>
+            <span className="text-sm text-muted-foreground">(Required)</span>
+          </div>
           <Textarea
             id="content"
             value={formData.content}
@@ -115,7 +135,10 @@ export function CreatePrompt() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="category">Category</Label>
+          <div className="flex items-baseline justify-between">
+            <Label htmlFor="category">Category</Label>
+            <span className="text-sm text-muted-foreground">(Required)</span>
+          </div>
           <Select
             value={formData.category}
             onValueChange={(value) => setFormData({ ...formData, category: value })}
@@ -134,32 +157,47 @@ export function CreatePrompt() {
         </div>
 
         <div className="space-y-2">
-          <Label>Model Types</Label>
+          <div className="flex items-baseline justify-between">
+            <Label>Model Types</Label>
+            <span className="text-sm text-muted-foreground">(Optional)</span>
+          </div>
           <div className="flex flex-wrap gap-2">
-            {modelTypes.map((model) => (
-              <Button
-                key={model}
-                type="button"
-                variant={formData.modelType.includes(model) ? 'default' : 'outline'}
-                onClick={() => {
-                  const newModelType = formData.modelType.includes(model)
-                    ? formData.modelType.filter((m) => m !== model)
-                    : [...formData.modelType, model];
-                  setFormData({ ...formData, modelType: newModelType });
-                }}
-              >
-                {model}
-              </Button>
-            ))}
+            {modelTypes.map((model) => {
+              const modelKey = model.toLowerCase().replace(/\s+/g, '-');
+              return (
+                <Button
+                  key={model}
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const newModelType = formData.modelType.includes(model)
+                      ? formData.modelType.filter((m) => m !== model)
+                      : [...formData.modelType, model];
+                    setFormData({ ...formData, modelType: newModelType });
+                  }}
+                  className={`gap-2 ${
+                    model === 'All AI Models' ? 'model-button-all-ai-models' : `model-button model-button-${modelKey}`
+                  }`}
+                  data-state={formData.modelType.includes(model) ? 'active' : undefined}
+                >
+                  <ModelIcon model={model} className={model === 'All AI Models' ? 'icon' : ''} />
+                  <span>{model}</span>
+                </Button>
+              );
+            })}
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="tags">Tags (comma-separated)</Label>
+          <div className="flex items-baseline justify-between">
+            <Label htmlFor="tags">Tags (comma-separated)</Label>
+            <span className="text-sm text-muted-foreground">(Optional)</span>
+          </div>
           <Input
             id="tags"
             value={formData.tags}
             onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+            placeholder="e.g. writing, story, creative"
           />
         </div>
 

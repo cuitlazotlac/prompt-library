@@ -1,0 +1,93 @@
+.model-button-chatgpt {
+  --model-color: 16 163 127;
+}
+
+.model-button-claude {
+  --model-color: 217 119 87;
+}
+
+.model-button-gemini {
+  --model-color: 26 115 232;
+}
+
+.model-button-mistral {
+  --model-color: 250 82 15;
+}
+
+.model-button-grok {
+  --model-color: 34 47 62;
+}
+
+.model-button-llama {
+  --model-color: 29 101 193;
+}
+
+.model-button-midjourney {
+  --model-color: 233 30 99;
+}
+
+.model-button {
+  background-color: transparent;
+  border: 1px solid rgb(var(--model-color) / 0.2);
+  color: rgb(var(--model-color));
+}
+
+.model-button:hover {
+  background-color: rgb(var(--model-color) / 0.1);
+}
+
+.model-button[data-state="active"] {
+  background-color: rgb(var(--model-color));
+  border-color: rgb(var(--model-color));
+  color: white;
+}
+
+/* Copilot-inspired gradient for All AI Models button */
+.model-button-all-ai-models {
+  background-color: transparent;
+  border: 1px solid rgba(82, 82, 91, 0.2);
+}
+
+.model-button-all-ai-models span {
+  background: linear-gradient(
+    90deg,
+    #3CCAD8,
+    #4CA3FF,
+    #7B61FF,
+    #AD5AFF,
+    #3CCAD8
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  background-size: 200% auto;
+  animation: shine 4s linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
+}
+
+.model-button-all-ai-models .icon {
+  color: #4CA3FF;
+}
+
+.model-button-all-ai-models:hover {
+  background-color: rgba(76, 163, 255, 0.1);
+}
+
+.model-button-all-ai-models[data-state="active"] {
+  background-color: #4CA3FF;
+  border-color: #4CA3FF;
+}
+
+.model-button-all-ai-models[data-state="active"] span {
+  background: none;
+  color: white;
+}
+
+.model-button-all-ai-models[data-state="active"] .icon {
+  color: white;
+} 
