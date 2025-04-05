@@ -13,10 +13,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { LogOut, Menu, Plus, User } from "lucide-react"
 import { Button } from "./ui/button"
 import { SearchBar } from "./SearchBar"
+import { Input } from '@/components/ui/input'
+import { ThemeToggle } from './ThemeToggle'
 
 interface NavigationProps {
   searchQuery: string;
-  onSearchChange: (value: string) => void;
+  onSearchChange: (query: string) => void;
 }
 
 export function Navigation({ searchQuery, onSearchChange }: NavigationProps) {
@@ -55,6 +57,7 @@ export function Navigation({ searchQuery, onSearchChange }: NavigationProps) {
         <SearchBar searchQuery={searchQuery} onSearchChange={onSearchChange} />
 
         <div className="flex items-center justify-end space-x-4">
+          <ThemeToggle />
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

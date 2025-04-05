@@ -5,7 +5,7 @@ export interface Prompt {
   content: string;
   category: string;
   model: string;
-  modelType?: string;
+  modelType: string[];
   tags: string[];
   userId: string;
   authorId?: string; // For backward compatibility
@@ -17,4 +17,8 @@ export interface Prompt {
   upvotes?: number;
   usageTips?: string[];
   recommendedModels?: string[];
+  images?: {
+    url: string;
+    name: string;
+  }[];
 } 

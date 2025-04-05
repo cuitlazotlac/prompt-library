@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { doc, setDoc, collection } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import { db } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
-import { X } from 'lucide-react';
+import { Prompt } from '@/types';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -16,211 +17,242 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
+import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 const categories = ['Writing', 'Coding', 'Analysis', 'Creative', 'Business'];
 const modelTypes = ['ChatGPT', 'Claude', 'Gemini'];
 
+interface CreatePromptFormData extends Omit<Prompt, 'id' | 'authorId' | 'authorName' | 'createdAt' | 'updatedAt' | 'favorites' | 'favoriteUsers' | 'upvotes' | 'usageTips' | 'recommendedModels'> {
+  images: { url: string; name: string; }[];
+}
+
 export function CreatePrompt() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [content, setContent] = useState('');
-  const [category, setCategory] = useState('');
-  const [selectedModels, setSelectedModels] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState('');
-  const [usageTips, setUsageTips] = useState('');
-  const [recommendedModels, setRecommendedModels] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState<CreatePromptFormData>({
+    title: '',
+    description: '',
+    content: '',
+    category: '',
+    model: '',
+    modelType: [],
+    tags: [],
+    images: [],
+    userId: '',
+  });
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   if (!user) {
     navigate('/');
     return null;
   }
 
-  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && newTag.trim()) {
-      e.preventDefault();
-      if (!tags.includes(newTag.trim())) {
-        setTags([...tags, newTag.trim()]);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      if (files.length + selectedImages.length > 3) {
+        toast.error('You can only upload up to 3 images');
+        return;
       }
-      setNewTag('');
+      setSelectedImages([...selectedImages, ...files]);
+      
+      // Create preview URLs
+      const newPreviews = files.map(file => URL.createObjectURL(file));
+      setImagePreviews([...imagePreviews, ...newPreviews]);
     }
   };
 
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
+  const removeImage = (index: number) => {
+    const newImages = [...selectedImages];
+    const newPreviews = [...imagePreviews];
+    newImages.splice(index, 1);
+    newPreviews.splice(index, 1);
+    setSelectedImages(newImages);
+    setImagePreviews(newPreviews);
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
 
+    setIsLoading(true);
     try {
+      const promptRef = doc(collection(db, 'prompts'));
+      const promptId = promptRef.id;
+
+      // Upload images if any
+      const uploadedImages: { url: string; name: string; }[] = [];
+      for (const image of selectedImages) {
+        const storageRef = ref(storage, `prompts/${promptId}/${image.name}`);
+        await uploadBytes(storageRef, image);
+        const downloadURL = await getDownloadURL(storageRef);
+        uploadedImages.push({
+          url: downloadURL,
+          name: image.name,
+        });
+      }
+
+      const { images: _, ...formDataWithoutImages } = formData;
       const promptData = {
-        title,
-        description,
-        content,
-        category,
-        modelType: selectedModels,
-        tags,
+        ...formDataWithoutImages,
+        userId: user.uid,
         authorId: user.uid,
-        authorName: user.displayName,
+        authorName: user.displayName || 'Anonymous',
         createdAt: new Date(),
         updatedAt: new Date(),
+        favorites: 0,
+        favoriteUsers: [] as string[],
         upvotes: 0,
-        isFeatured: false,
-        isFlagged: false,
-        ...(usageTips.trim() && { usageTips: usageTips.trim() }),
-        ...(recommendedModels.trim() && {
-          recommendedModels: recommendedModels
-            .split(',')
-            .map((m) => m.trim())
-            .filter((m) => m.length > 0),
-        }),
-      };
+        usageTips: [] as string[],
+        recommendedModels: [] as string[],
+        images: uploadedImages,
+      } satisfies Omit<Prompt, 'id'>;
 
-      await addDoc(collection(db, 'prompts'), promptData);
+      await setDoc(promptRef, promptData);
       toast.success('Prompt created successfully!');
       navigate('/');
     } catch (error) {
       console.error('Error creating prompt:', error);
-      toast.error('Failed to create prompt. Please try again.');
+      toast.error('Failed to create prompt');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="container py-8">
-      <h1 className="mb-8 text-4xl font-bold">Create New Prompt</h1>
+    <div className="container max-w-2xl py-8">
+      <h1 className="mb-8 text-3xl font-bold">Create New Prompt</h1>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="title">Title</Label>
+          <Input
+            id="title"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            required
+          />
+        </div>
 
-      <Card>
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                required
-                value={title}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
-              />
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            required
+          />
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                required
-                value={description}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
-                rows={2}
-              />
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="content">Prompt Content</Label>
+          <Textarea
+            id="content"
+            value={formData.content}
+            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+            required
+            className="min-h-[200px]"
+          />
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="content">Prompt Content</Label>
-              <Textarea
-                id="content"
-                required
-                value={content}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
-                rows={6}
-              />
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="category">Category</Label>
+          <Select
+            value={formData.category}
+            onValueChange={(value) => setFormData({ ...formData, category: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select
-                value={category}
-                onValueChange={setCategory}
+        <div className="space-y-2">
+          <Label>Model Types</Label>
+          <div className="flex flex-wrap gap-2">
+            {modelTypes.map((model) => (
+              <Button
+                key={model}
+                type="button"
+                variant={formData.modelType.includes(model) ? 'default' : 'outline'}
+                onClick={() => {
+                  const newModelType = formData.modelType.includes(model)
+                    ? formData.modelType.filter((m) => m !== model)
+                    : [...formData.modelType, model];
+                  setFormData({ ...formData, modelType: newModelType });
+                }}
               >
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                {model}
+              </Button>
+            ))}
+          </div>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="modelTypes">Model Types</Label>
-              <Select
-                value={selectedModels.join(',')}
-                onValueChange={(value: string) => setSelectedModels(value.split(','))}
-              >
-                <SelectTrigger id="modelTypes">
-                  <SelectValue placeholder="Select model types" />
-                </SelectTrigger>
-                <SelectContent>
-                  {modelTypes.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="tags">Tags (comma-separated)</Label>
+          <Input
+            id="tags"
+            value={formData.tags.join(', ')}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                tags: e.target.value.split(',').map((tag) => tag.trim()),
+              })
+            }
+          />
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="tags">Tags</Label>
-              <Input
-                id="tags"
-                value={newTag}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTag(e.target.value)}
-                onKeyPress={handleAddTag}
-                placeholder="Press Enter to add a tag"
-              />
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"
-                  >
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="text-primary/60 hover:text-primary"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
+        <div className="space-y-2">
+          <Label>Images (up to 3)</Label>
+          <div className="flex flex-wrap gap-4">
+            {imagePreviews.map((preview, index) => (
+              <div key={index} className="relative">
+                <img
+                  src={preview}
+                  alt={`Preview ${index + 1}`}
+                  className="h-32 w-32 rounded-lg object-cover"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => removeImage(index)}
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </Button>
               </div>
-            </div>
+            ))}
+            {imagePreviews.length < 3 && (
+              <div className="flex h-32 w-32 items-center justify-center rounded-lg border-2 border-dashed">
+                <Label htmlFor="images" className="cursor-pointer">
+                  <PhotoIcon className="h-8 w-8 text-muted-foreground" />
+                </Label>
+                <Input
+                  id="images"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+              </div>
+            )}
+          </div>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="usageTips">Usage Tips (Optional)</Label>
-              <Textarea
-                id="usageTips"
-                value={usageTips}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setUsageTips(e.target.value)}
-                rows={2}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="recommendedModels">
-                Recommended Models (Optional, comma-separated)
-              </Label>
-              <Input
-                id="recommendedModels"
-                value={recommendedModels}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRecommendedModels(e.target.value)}
-              />
-            </div>
-
-            <Button type="submit" className="w-full">
-              Create Prompt
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? 'Creating...' : 'Create Prompt'}
+        </Button>
+      </form>
     </div>
   );
 } 
