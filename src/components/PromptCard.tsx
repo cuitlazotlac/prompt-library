@@ -51,7 +51,7 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
         ))}
       </div>
       <CardHeader>
-        <CardTitle className="line-clamp-1">{prompt.title}</CardTitle>
+        <CardTitle className="line-clamp-1 leading-tight min-h-[1.5rem]">{prompt.title}</CardTitle>
         <CardDescription className="line-clamp-2">
           {prompt.description}
         </CardDescription>
@@ -73,7 +73,7 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
       </CardContent>
       <CardFooter className="flex justify-between">
         <Button variant="ghost" asChild>
-          <Link to={`/prompt/${prompt.id}`}>View Details</Link>
+          <Link to={`/edit/${prompt.id}`}>View Details</Link>
         </Button>
         <div className="flex gap-2">
           <TooltipProvider>

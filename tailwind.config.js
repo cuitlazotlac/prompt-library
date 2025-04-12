@@ -1,8 +1,11 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'class',
+  darkMode: ["class"],
   content: [
-    './src/**/*.{js,jsx,ts,tsx}',
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
   ],
   theme: {
     container: {
@@ -14,17 +17,14 @@ module.exports = {
     },
     extend: {
       fontFamily: {
-        mono: ['Berkeley Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+        sans: ['Albert Sans', 'system-ui', 'sans-serif'],
+        mono: ['Berkeley Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        background: {
-          DEFAULT: 'var(--background)',
-          dark: '#1C1C1C',
-          light: '#F4EDE6',
-        },
+        background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
