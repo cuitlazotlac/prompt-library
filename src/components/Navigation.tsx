@@ -1,21 +1,21 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface NavigationProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
 }
 
-export function Navigation({ searchQuery, onSearchChange }: NavigationProps) {
-  const { user, logout } = useAuth();
+export default function Navigation({ searchQuery, onSearchChange }: NavigationProps) {
+  const { logout } = useAuth();
+  const { setTheme } = useTheme();
   const navigate = useNavigate();
-  const { theme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -23,7 +23,7 @@ export function Navigation({ searchQuery, onSearchChange }: NavigationProps) {
       await logout();
       navigate('/');
     } catch (error) {
-      console.error('Error logging out:', error);
+      console.error('Failed to log out:', error);
     }
   };
 
@@ -54,28 +54,7 @@ export function Navigation({ searchQuery, onSearchChange }: NavigationProps) {
           </div>
           <nav className="flex items-center space-x-2">
             <ThemeToggle />
-            {user ? (
-              <>
-                <Button variant="ghost" asChild>
-                  <Link to="/create">Create Prompt</Link>
-                </Button>
-                <Button variant="ghost" asChild>
-                  <Link to="/profile">Profile</Link>
-                </Button>
-                {user.isAdmin && (
-                  <Button variant="ghost" asChild>
-                    <Link to="/admin">Admin</Link>
-                  </Button>
-                )}
-                <Button variant="ghost" onClick={handleLogout}>
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <Button variant="ghost" asChild>
-                <Link to="/login">Login</Link>
-              </Button>
-            )}
+            {/* Auth buttons temporarily hidden */}
           </nav>
         </div>
       </div>

@@ -33,6 +33,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Prompt } from '../types';
 import toast from 'react-hot-toast';
+import { AdUnit } from '@/components/AdUnit';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -58,6 +59,18 @@ function TabPanel(props: TabPanelProps) {
       )}
     </div>
   );
+}
+
+interface Prompt {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  modelTypes: string[];
+  tags: string[];
+  isFlagged?: boolean;
+  flagReason?: string;
+  // ... other properties
 }
 
 export default function Admin() {
@@ -127,7 +140,7 @@ export default function Admin() {
     },
   });
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
@@ -222,6 +235,11 @@ export default function Admin() {
       <Typography variant="h1" gutterBottom>
         Admin Dashboard
       </Typography>
+
+      {/* Ad Banner */}
+      <div className="mb-8">
+        <AdUnit type="banner" />
+      </div>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={handleTabChange}>

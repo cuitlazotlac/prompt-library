@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
-import { ClipboardDocumentIcon, HeartIcon, PencilSquareIcon, TrashIcon, FlagIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { ClipboardDocumentIcon, ClipboardDocumentCheckIcon, HeartIcon, PencilSquareIcon, TrashIcon, FlagIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +23,7 @@ export default function PromptDetail() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
+  const [isCopied, setIsCopied] = useState(false);
 
   const toggleFavoriteMutation = useMutation({
     mutationFn: async ({ promptId, isFavorite }: { promptId: string; isFavorite: boolean }) => {
@@ -122,7 +123,9 @@ export default function PromptDetail() {
     if (!prompt) return;
     try {
       await navigator.clipboard.writeText(prompt.content);
+      setIsCopied(true);
       toast.success('Prompt copied to clipboard!');
+      setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
     } catch (error) {
       console.error('Failed to copy:', error);
       toast.error('Failed to copy prompt');
@@ -172,7 +175,7 @@ export default function PromptDetail() {
   const isAdmin = user?.isAdmin;
 
   return (
-    <div className="container max-w-4xl py-8">
+    <div className="container py-8 max-w-4xl">
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -189,7 +192,7 @@ export default function PromptDetail() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-start justify-between">
+          <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-3xl">{prompt.title}</CardTitle>
               <CardDescription className="mt-2">
@@ -208,9 +211,9 @@ export default function PromptDetail() {
                         className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
                       >
                         {isFavorite ? (
-                          <HeartSolidIcon className="h-5 w-5" />
+                          <HeartSolidIcon className="w-5 h-5" />
                         ) : (
-                          <HeartIcon className="h-5 w-5" />
+                          <HeartIcon className="w-5 h-5" />
                         )}
                       </Button>
                     </TooltipTrigger>
@@ -226,7 +229,7 @@ export default function PromptDetail() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={handleEdit}>
-                          <PencilSquareIcon className="h-5 w-5" />
+                          <PencilSquareIcon className="w-5 h-5" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -243,7 +246,7 @@ export default function PromptDetail() {
                           onClick={() => setDeleteDialogOpen(true)}
                           className="text-destructive"
                         >
-                          <TrashIcon className="h-5 w-5" />
+                          <TrashIcon className="w-5 h-5" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -258,7 +261,7 @@ export default function PromptDetail() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon">
-                        <FlagIcon className="h-5 w-5" />
+                        <FlagIcon className="w-5 h-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -277,13 +280,13 @@ export default function PromptDetail() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <div className="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
+            <div className="px-3 py-1 text-sm rounded-full bg-primary/10 text-primary">
               {prompt.category}
             </div>
             {prompt.modelType.map((model) => (
               <div
                 key={model}
-                className="rounded-full bg-secondary/10 px-3 py-1 text-sm text-secondary-foreground"
+                className="px-3 py-1 text-sm rounded-full bg-secondary/10 text-secondary-foreground"
               >
                 {model}
               </div>
@@ -291,7 +294,7 @@ export default function PromptDetail() {
             {prompt.tags.map((tag) => (
               <div
                 key={tag}
-                className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
+                className="px-3 py-1 text-sm rounded-full border text-muted-foreground"
               >
                 {tag}
               </div>
@@ -303,11 +306,11 @@ export default function PromptDetail() {
               <h3 className="mb-2 font-semibold">Images</h3>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {prompt.images.map((image, index) => (
-                  <div key={index} className="relative aspect-square overflow-hidden rounded-lg">
+                  <div key={index} className="overflow-hidden relative rounded-lg aspect-square">
                     <img
                       src={image.url}
                       alt={image.name}
-                      className="h-full w-full object-cover"
+                      className="object-cover w-full h-full"
                     />
                   </div>
                 ))}
@@ -317,16 +320,29 @@ export default function PromptDetail() {
 
           <div>
             <h3 className="mb-2 font-semibold">Prompt Content</h3>
-            <div className="relative rounded-lg bg-muted p-4">
-              <pre className="whitespace-pre-wrap text-sm">{prompt.content}</pre>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-2"
-                onClick={handleCopy}
-              >
-                <ClipboardDocumentIcon className="h-5 w-5" />
-              </Button>
+            <div className="relative p-4 rounded-lg bg-muted">
+              <pre className="text-sm whitespace-pre-wrap">{prompt.content}</pre>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      onClick={handleCopy}
+                      className="absolute top-2 right-2 transition-all duration-200"
+                    >
+                      {isCopied ? (
+                        <ClipboardDocumentCheckIcon className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <ClipboardDocumentIcon className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{isCopied ? 'Copied!' : 'Copy prompt'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 
@@ -344,7 +360,7 @@ export default function PromptDetail() {
                 {prompt.recommendedModels.map((model) => (
                   <div
                     key={model}
-                    className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
+                    className="px-3 py-1 text-sm rounded-full border text-muted-foreground"
                   >
                     {model}
                   </div>

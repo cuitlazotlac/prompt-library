@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AdUnit } from '@/components/AdUnit';
 
 interface PromptCardProps {
   prompt: Prompt;
@@ -171,6 +172,11 @@ export function Profile() {
           <h1 className="text-2xl font-bold">{user.displayName}</h1>
           <p className="text-muted-foreground">{user.email}</p>
         </div>
+      </div>
+
+      {/* Ad Banner */}
+      <div className="mb-8">
+        <AdUnit type="banner" />
       </div>
 
       <Tabs defaultValue="prompts">
