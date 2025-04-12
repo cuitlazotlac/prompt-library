@@ -161,7 +161,7 @@ export function Home({ searchQuery }: HomeProps) {
   }
 
   return (
-    <div className="container px-4 py-8 mx-auto">
+    <div className="container mx-auto px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">AI Prompt Library</h1>
         <p className="text-muted-foreground">Browse and discover AI prompts</p>

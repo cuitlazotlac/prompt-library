@@ -1,20 +1,11 @@
-import { Link, useNavigate } from "react-router-dom"
-import { useAuth } from "@/contexts/AuthContext"
-import { cn } from "@/lib/utils"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Menu, Plus, User } from "lucide-react"
-import { Button } from "./ui/button"
-import { SearchBar } from "./SearchBar"
-import { Input } from '@/components/ui/input'
-import { ThemeToggle } from './ThemeToggle'
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface NavigationProps {
   searchQuery: string;
@@ -22,71 +13,72 @@ interface NavigationProps {
 }
 
 export function Navigation({ searchQuery, onSearchChange }: NavigationProps) {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { theme } = useTheme();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
-      await logout()
-      navigate("/")
+      await logout();
+      navigate('/');
     } catch (error) {
-      console.error("Failed to log out:", error)
+      console.error('Error logging out:', error);
     }
-  }
+  };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex gap-4 items-center h-14">
-        <div className="flex flex-1 justify-between items-center md:justify-start">
+    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex items-center h-16">
+        <div className="flex mr-4">
           <Link to="/" className="flex items-center mr-6 space-x-2">
-            <span className="hidden font-bold sm:inline-block">
-              AI Prompt Library
-            </span>
+            <img 
+              src="/logo-nav.svg" 
+              alt="AI Prompt Library" 
+              className="w-auto h-10 sm:h-12 md:h-14"
+            />
           </Link>
         </div>
-
-        <SearchBar searchQuery={searchQuery} onSearchChange={onSearchChange} />
-
-        <div className="flex justify-end items-center space-x-4">
-          {user && (
-            <Button asChild variant="default" size="sm" className="gap-1 font-medium">
-              <Link to="/create">
-                <Plus className="w-4 h-4" />
-                Create a Prompt
-              </Link>
-            </Button>
-          )}
-          <ThemeToggle />
-          {user ? (
-            <div className="flex gap-4 items-center">
-              <Link
-                to="/profile"
-                className="text-sm font-medium text-foreground hover:text-foreground/80"
-              >
-                {user.displayName || user.email}
-              </Link>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                className="text-sm"
-              >
-                Logout
-              </Button>
+        <div className="flex flex-1 justify-between items-center space-x-2 md:justify-end">
+          <div className="flex-1 w-full md:w-auto md:flex-none">
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search prompts..."
+                className="pl-8 md:w-[200px] lg:w-[300px]"
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+              />
             </div>
-          ) : (
-            // <Button
-            //   variant="outline"
-            //   size="sm"
-            //   onClick={handleLogin}
-            //   className="text-sm"
-            // >
-            //   Login
-            // </Button>
-            null
-          )}
+          </div>
+          <nav className="flex items-center space-x-2">
+            <ThemeToggle />
+            {user ? (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link to="/create">Create Prompt</Link>
+                </Button>
+                <Button variant="ghost" asChild>
+                  <Link to="/profile">Profile</Link>
+                </Button>
+                {user.isAdmin && (
+                  <Button variant="ghost" asChild>
+                    <Link to="/admin">Admin</Link>
+                  </Button>
+                )}
+                <Button variant="ghost" onClick={handleLogout}>
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Button variant="ghost" asChild>
+                <Link to="/login">Login</Link>
+              </Button>
+            )}
+          </nav>
         </div>
       </div>
-    </header>
-  )
+    </nav>
+  );
 } 
