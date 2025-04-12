@@ -58,47 +58,32 @@ export function Navigation({ searchQuery, onSearchChange }: NavigationProps) {
           )}
           <ThemeToggle />
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="relative w-8 h-8 rounded-full"
-                  aria-label="User menu"
-                >
-                  <Avatar>
-                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || "User avatar"} />
-                    <AvatarFallback>
-                      {user.displayName?.[0]?.toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/profile")}>
-                  <User className="mr-2 w-4 h-4" />
-                  Profile
-                </DropdownMenuItem>
-                {user.isAdmin && (
-                  <DropdownMenuItem onClick={() => navigate("/admin")}>
-                    <Menu className="mr-2 w-4 h-4" />
-                    Admin Dashboard
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 w-4 h-4" />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button asChild>
-              <Link to="/login">
-                Login
+            <div className="flex gap-4 items-center">
+              <Link
+                to="/profile"
+                className="text-sm font-medium text-foreground hover:text-foreground/80"
+              >
+                {user.displayName || user.email}
               </Link>
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="text-sm"
+              >
+                Logout
+              </Button>
+            </div>
+          ) : (
+            // <Button
+            //   variant="outline"
+            //   size="sm"
+            //   onClick={handleLogin}
+            //   className="text-sm"
+            // >
+            //   Login
+            // </Button>
+            null
           )}
         </div>
       </div>
