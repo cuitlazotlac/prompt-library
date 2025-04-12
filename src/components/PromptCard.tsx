@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Prompt } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ClipboardDocumentIcon, HeartIcon } from '@heroicons/react/24/outline';
+import { ClipboardDocumentIcon, ClipboardDocumentCheckIcon, HeartIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '@/contexts/AuthContext';
 import { ModelIcon } from '@/components/ModelIcon';
@@ -18,11 +19,14 @@ interface PromptCardProps {
 
 export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) {
   const { user } = useAuth();
+  const [isCopied, setIsCopied] = useState(false);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(prompt.content);
+      setIsCopied(true);
       toast.success('Prompt copied to clipboard!');
+      setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
     } catch (error) {
       console.error('Failed to copy:', error);
       toast.error('Failed to copy prompt');
@@ -30,17 +34,17 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
   };
 
   return (
-    <Card className="group relative overflow-hidden">
+    <Card className="overflow-hidden relative group">
       <div className="absolute right-4 top-4 flex flex-wrap gap-1.5">
         {(Array.isArray(prompt.modelType) ? prompt.modelType : [prompt.modelType].filter(Boolean)).map((model) => (
           <TooltipProvider key={model}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className={cn(
-                  "inline-flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10",
+                  "inline-flex justify-center items-center w-7 h-7 rounded-full bg-secondary/10",
                   "ring-1 ring-inset ring-secondary/20"
                 )}>
-                  <ModelIcon model={model} className="h-4 w-4 text-secondary-foreground" />
+                  <ModelIcon model={model} className="w-4 h-4 text-secondary-foreground" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -57,14 +61,38 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="relative p-4 mb-4 rounded-lg bg-muted">
+          <pre className="text-sm whitespace-pre-wrap line-clamp-3">{prompt.content}</pre>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={handleCopy}
+                  className="absolute top-2 right-2 transition-all duration-200"
+                >
+                  {isCopied ? (
+                    <ClipboardDocumentCheckIcon className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <ClipboardDocumentIcon className="w-4 h-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isCopied ? 'Copied!' : 'Copy prompt'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <div className="flex flex-wrap gap-2">
-          <div className="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
+          <div className="px-3 py-1 text-sm rounded-full bg-primary/10 text-primary">
             {prompt.category}
           </div>
           {(Array.isArray(prompt.tags) ? prompt.tags : [prompt.tags].filter(Boolean)).map((tag) => (
             <div
               key={tag}
-              className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
+              className="px-3 py-1 text-sm rounded-full border text-muted-foreground"
             >
               {tag}
             </div>
@@ -75,47 +103,29 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
         <Button variant="ghost" asChild>
           <Link to={`/edit/${prompt.id}`}>View Details</Link>
         </Button>
-        <div className="flex gap-2">
+        {user && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={handleCopy}
+                  onClick={() => onFavorite(prompt.id, isFavorite)}
+                  className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
                 >
-                  <ClipboardDocumentIcon className="h-5 w-5" />
+                  {isFavorite ? (
+                    <HeartSolidIcon className="w-5 h-5" />
+                  ) : (
+                    <HeartIcon className="w-5 h-5" />
+                  )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Copy prompt</p>
+                <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          {user && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onFavorite(prompt.id, isFavorite)}
-                    className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
-                  >
-                    {isFavorite ? (
-                      <HeartSolidIcon className="h-5 w-5" />
-                    ) : (
-                      <HeartIcon className="h-5 w-5" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </div>
+        )}
       </CardFooter>
     </Card>
   );

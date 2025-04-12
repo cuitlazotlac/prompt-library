@@ -9,7 +9,7 @@ import { CreatePrompt } from '@/pages/CreatePrompt';
 import { EditPrompt } from '@/pages/EditPrompt';
 import { Profile } from '@/pages/Profile';
 import Admin from '@/pages/Admin';
-import { Navigation } from '@/components/Navigation';
+import Navigation from '@/components/Navigation';
 import '@/styles/themes.css';
 
 const queryClient = new QueryClient();

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   collection,
@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { PromptCard } from "@/components/PromptCard";
 import { ModelIcon } from "@/components/ModelIcon";
+import { AdUnit } from "@/components/AdUnit";
 import toast from "react-hot-toast";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,6 +29,8 @@ import {
 } from "@/components/ui/select";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import "@/styles/model-colors.css";
+import { Skeleton } from "@/components/ui/skeleton";
+import Navigation from "@/components/Navigation";
 
 const categories = [
   "All",
@@ -167,6 +170,11 @@ export function Home({ searchQuery }: HomeProps) {
         <p className="text-muted-foreground">Browse and discover AI prompts</p>
       </div>
 
+      {/* Banner Ad */}
+      <div className="mb-8">
+        <AdUnit type="banner" />
+      </div>
+
       <div className="flex flex-wrap gap-2 mb-8">
         {categories.map((category) => (
           <Button
@@ -211,15 +219,35 @@ export function Home({ searchQuery }: HomeProps) {
         })}
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredPrompts?.map((prompt) => (
-          <PromptCard
-            key={prompt.id}
-            prompt={prompt}
-            onFavorite={handleFavorite}
-            isFavorite={favorites?.has(prompt.id) ?? false}
-          />
-        ))}
+      {/* Main content with sidebar layout */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+        {/* Content area */}
+        <div className="lg:col-span-3">
+          <div className="grid gap-6 sm:grid-cols-2">
+            {filteredPrompts?.map((prompt, index) => (
+              <React.Fragment key={prompt.id}>
+                <PromptCard
+                  prompt={prompt}
+                  onFavorite={handleFavorite}
+                  isFavorite={favorites?.has(prompt.id) ?? false}
+                />
+                {/* Insert content ad after every 6th card */}
+                {index > 0 && (index + 1) % 6 === 0 && (
+                  <div className="col-span-full my-4">
+                    <AdUnit type="content" />
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="hidden lg:block">
+          <div className="sticky top-24">
+            <AdUnit type="sidebar" />
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import '@/styles/model-colors.css';
+import { AdUnit } from '@/components/AdUnit';
 
 const categories = ['Writing', 'Coding', 'Analysis', 'Creative', 'Business'];
 const modelTypes = [
@@ -93,6 +94,12 @@ export function CreatePrompt() {
   return (
     <div className="container max-w-2xl py-8">
       <h1 className="mb-8 text-3xl font-bold">Create New Prompt</h1>
+
+      {/* Ad Banner */}
+      <div className="mb-8">
+        <AdUnit type="banner" />
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
           <div className="flex items-baseline justify-between">
