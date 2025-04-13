@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -9,8 +9,11 @@ import {
   doc,
   setDoc,
   deleteDoc,
+  limit,
+  startAfter,
+  DocumentData,
 } from "firebase/firestore";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { db } from "@/lib/firebase";
 import { Prompt } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,17 +32,8 @@ import {
 } from "@/components/ui/select";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import "@/styles/model-colors.css";
-import { Skeleton } from "@/components/ui/skeleton";
-import Navigation from "@/components/Navigation";
+import { MultiSelect } from "@/components/ui/multi-select";
 
-const categories = [
-  "All",
-  "Writing",
-  "Coding",
-  "Analysis",
-  "Creative",
-  "Business",
-];
 const modelTypes = [
   "All AI Models",
   "ChatGPT",
@@ -51,22 +45,39 @@ const modelTypes = [
   "Midjourney",
 ];
 
-interface HomeProps {
-  searchQuery: string;
-}
+const ITEMS_PER_PAGE = 20;
 
-export function Home({ searchQuery }: HomeProps) {
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedModel, setSelectedModel] = useState("All");
+export function Home() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(["All"]);
+  const [selectedModels, setSelectedModels] = useState<string[]>(["All AI Models"]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastVisible, setLastVisible] = useState<DocumentData | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: prompts, isLoading } = useQuery({
-    queryKey: ["prompts"],
+    queryKey: ["prompts", currentPage],
     queryFn: async () => {
-      const q = query(collection(db, "prompts"), orderBy("createdAt", "desc"));
+      let q = query(
+        collection(db, "prompts"),
+        orderBy("createdAt", "desc"),
+        limit(ITEMS_PER_PAGE)
+      );
+
+      if (currentPage > 1 && lastVisible) {
+        q = query(
+          collection(db, "prompts"),
+          orderBy("createdAt", "desc"),
+          startAfter(lastVisible),
+          limit(ITEMS_PER_PAGE)
+        );
+      }
+
       const querySnapshot = await getDocs(q);
+      setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
+      
       return querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -144,16 +155,85 @@ export function Home({ searchQuery }: HomeProps) {
     });
   };
 
+  const handleNextPage = () => {
+    setCurrentPage((prev) => prev + 1);
+  };
+
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
+
+  // Get unique categories from prompts
+  const categories = useMemo(() => {
+    if (!prompts) return ["All"];
+    const uniqueCategories = new Set(prompts.map(prompt => prompt.category));
+    const allCategories = ["All", ...Array.from(uniqueCategories).sort()];
+    // Initialize with all categories selected
+    if (selectedCategories.length === 0 || selectedCategories[0] === "All") {
+      setSelectedCategories(allCategories);
+    }
+    return allCategories;
+  }, [prompts]);
+
+  // Initialize models with all selected
+  React.useEffect(() => {
+    if (selectedModels.length === 0 || selectedModels[0] === "All AI Models") {
+      setSelectedModels(modelTypes);
+    }
+  }, []);
+
+  const getFilterLabel = (selected: string[], all: string[], allLabel: string) => {
+    if (selected.length === 0 || selected.length === all.length || (selected.length === 1 && selected[0] === allLabel)) {
+      return allLabel;
+    }
+    return `${selected.length} selected`;
+  };
+
+  const handleCategoryChange = (values: string[]) => {
+    if (values.includes("All")) {
+      // If "All" is selected, select all categories
+      setSelectedCategories(categories);
+    } else if (values.length === 0) {
+      // If nothing is selected, select "All"
+      setSelectedCategories(["All"]);
+    } else if (selectedCategories.includes("All") && !values.includes("All")) {
+      // If "All" was previously selected and now it's not, clear all selections
+      setSelectedCategories([]);
+    } else {
+      setSelectedCategories(values);
+    }
+    setCurrentPage(1);
+    setLastVisible(null);
+  };
+
+  const handleModelChange = (values: string[]) => {
+    if (values.includes("All AI Models")) {
+      // If "All" is selected, select all models
+      setSelectedModels(modelTypes);
+    } else if (values.length === 0) {
+      // If nothing is selected, select "All"
+      setSelectedModels(["All AI Models"]);
+    } else if (selectedModels.includes("All AI Models") && !values.includes("All AI Models")) {
+      // If "All" was previously selected and now it's not, clear all selections
+      setSelectedModels([]);
+    } else {
+      setSelectedModels(values);
+    }
+    setCurrentPage(1);
+    setLastVisible(null);
+  };
+
   const filteredPrompts = prompts?.filter((prompt) => {
-    const matchesSearch =
-      prompt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      prompt.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = prompt.title
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
     const matchesCategory =
-      selectedCategory === "All" || prompt.category === selectedCategory;
+      selectedCategories.includes("All") || selectedCategories.includes(prompt.category);
     const matchesModel =
-      selectedModel === "All" || prompt.modelType.includes(selectedModel);
+      selectedModels.includes("All AI Models") ||
+      prompt.modelType.some(model => selectedModels.includes(model));
     return matchesSearch && matchesCategory && matchesModel;
-  });
+  }) || [];
 
   if (isLoading) {
     return (
@@ -164,91 +244,95 @@ export function Home({ searchQuery }: HomeProps) {
   }
 
   return (
-    <div className="container mx-auto px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">AI Prompt Library</h1>
-        <p className="text-muted-foreground">Browse and discover AI prompts</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <main className="container px-4 py-8 mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">AI Prompt Library</h1>
+          <p className="text-muted-foreground">Browse and discover AI prompts</p>
+        </div>
 
-      {/* Banner Ad */}
-      <div className="mb-8">
-        <AdUnit type="banner" />
-      </div>
+        {/* Banner Ad */}
+        <div className="mb-8">
+          <AdUnit type="banner" />
+        </div>
 
-      <div className="flex flex-wrap gap-2 mb-8">
-        {categories.map((category) => (
-          <Button
-            key={category}
-            variant={selectedCategory === category ? "default" : "outline"}
-            onClick={() => setSelectedCategory(category)}
-            className="rounded-full"
-          >
-            {category}
-          </Button>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap gap-2 mb-8">
-        {modelTypes.map((model) => {
-          const modelKey = model.toLowerCase().replace(/\s+/g, "-");
-          return (
-            <Button
-              key={model}
-              variant="outline"
-              onClick={() =>
-                setSelectedModel(model === "All AI Models" ? "All" : model)
-              }
-              className={`rounded-full gap-2 ${
-                model === "All AI Models"
-                  ? "model-button-all-ai-models"
-                  : `model-button model-button-${modelKey}`
-              }`}
-              data-state={
-                selectedModel === (model === "All AI Models" ? "All" : model)
-                  ? "active"
-                  : undefined
-              }
-            >
-              <ModelIcon
-                model={model}
-                className={model === "All AI Models" ? "icon" : ""}
+        <div className="mb-8 space-y-4">
+          <Input
+            type="text"
+            placeholder="Search prompts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-md"
+          />
+          
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <MultiSelect
+                label="Categories"
+                options={categories.filter(c => c !== "All")}
+                value={selectedCategories}
+                onValueChange={handleCategoryChange}
+                allOptionLabel="All"
               />
-              <span>{model}</span>
-            </Button>
-          );
-        })}
-      </div>
-
-      {/* Main content with sidebar layout */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        {/* Content area */}
-        <div className="lg:col-span-3">
-          <div className="grid gap-6 sm:grid-cols-2">
-            {filteredPrompts?.map((prompt, index) => (
-              <React.Fragment key={prompt.id}>
-                <PromptCard
-                  prompt={prompt}
-                  onFavorite={handleFavorite}
-                  isFavorite={favorites?.has(prompt.id) ?? false}
-                />
-                {/* Insert content ad after every 6th card */}
-                {index > 0 && (index + 1) % 6 === 0 && (
-                  <div className="col-span-full my-4">
-                    <AdUnit type="content" />
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <MultiSelect
+                label="AI Models"
+                options={modelTypes.filter(m => m !== "All AI Models")}
+                value={selectedModels}
+                onValueChange={handleModelChange}
+                allOptionLabel="All AI Models"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="hidden lg:block">
-          <div className="sticky top-24">
-            <AdUnit type="sidebar" />
-          </div>
+        <div className="grid grid-cols-1 gap-6 mt-8 sm:grid-cols-2">
+          {isLoading ? (
+            Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="h-[300px] w-full rounded-lg bg-muted animate-pulse" />
+            ))
+          ) : filteredPrompts.length > 0 ? (
+            filteredPrompts.map((prompt) => (
+              <PromptCard
+                key={prompt.id}
+                prompt={prompt}
+                isFavorite={favorites?.has(prompt.id) || false}
+                onFavorite={handleFavorite}
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center text-muted-foreground">
+              No prompts found
+            </div>
+          )}
         </div>
-      </div>
+
+        {/* Pagination Controls */}
+        <div className="flex gap-4 justify-center items-center mt-8">
+          <Button
+            variant="outline"
+            onClick={handlePrevPage}
+            disabled={currentPage === 1}
+            className="flex gap-2 items-center"
+          >
+            <ChevronLeftIcon className="w-4 h-4" />
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {currentPage}
+          </span>
+          <Button
+            variant="outline"
+            onClick={handleNextPage}
+            disabled={filteredPrompts.length < ITEMS_PER_PAGE}
+            className="flex gap-2 items-center"
+          >
+            Next
+            <ChevronRightIcon className="w-4 h-4" />
+          </Button>
+        </div>
+      </main>
     </div>
   );
 }
