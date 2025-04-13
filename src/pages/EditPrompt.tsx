@@ -54,9 +54,23 @@ export function EditPrompt() {
   const { data: prompt, isLoading, error } = useQuery(queryOptions);
 
   useEffect(() => {
+    // Check if user is logged in
+    if (!user) {
+      toast.error("Please log in to edit prompts");
+      navigate("/");
+      return;
+    }
+
     if (error) {
       toast.error(error.message);
       navigate("/");
+      return;
+    }
+
+    // Check if user has permission to edit this prompt
+    if (prompt && !user.isAdmin && prompt.authorId !== user.uid) {
+      toast.error("You don't have permission to edit this prompt");
+      navigate(`/prompt/${id}`);
       return;
     }
 
@@ -68,7 +82,7 @@ export function EditPrompt() {
       setSelectedModels(prompt.modelType || []);
       setTags(prompt.tags);
     }
-  }, [prompt, navigate]);
+  }, [prompt, user, navigate, id]);
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && newTag.trim()) {
@@ -115,18 +129,26 @@ export function EditPrompt() {
     }
   };
 
-  if (isLoading) {
-    return <div>Loading...</div>;
+  if (!user) {
+    return null;
   }
 
-  if (!prompt) {
+  if (isLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-lg text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!prompt || (!user.isAdmin && prompt.authorId !== user.uid)) {
     return null;
   }
 
   const canEdit = user && (prompt.authorId === user.uid || user.isAdmin);
 
   return (
-    <div className="container max-w-2xl py-8">
+    <div className="container py-8 max-w-2xl">
       <h1 className="mb-8 text-3xl font-bold">Edit Prompt</h1>
 
       {/* Ad Banner */}
@@ -134,17 +156,17 @@ export function EditPrompt() {
         <AdUnit type="banner" />
       </div>
 
-      <div className="mx-auto max-w-2xl py-8">
+      <div className="py-8 mx-auto max-w-2xl">
         <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <Link to="/" className="flex items-center gap-1 hover:text-foreground transition-colors">
-              <BookOpenIcon className="h-4 w-4" />
+          <div className="flex gap-2 items-center mb-4 text-sm text-muted-foreground">
+            <Link to="/" className="flex gap-1 items-center transition-colors hover:text-foreground">
+              <BookOpenIcon className="w-4 h-4" />
               <span>Home</span>
             </Link>
             <span>/</span>
             <span className="text-foreground">{isEditing ? "Edit Prompt" : "Prompt Details"}</span>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold">{isEditing ? "Edit Prompt" : "Prompt Details"}</h1>
               <p className="text-muted-foreground">
@@ -238,7 +260,7 @@ export function EditPrompt() {
                 {tags.map((tag) => (
                   <div
                     key={tag}
-                    className="flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm"
+                    className="flex gap-1 items-center px-3 py-1 text-sm rounded-full bg-secondary"
                   >
                     {tag}
                     <button
@@ -260,7 +282,7 @@ export function EditPrompt() {
               />
             </div>
 
-            <div className="flex justify-end gap-4">
+            <div className="flex gap-4 justify-end">
               <Button
                 type="button"
                 variant="outline"
@@ -280,7 +302,7 @@ export function EditPrompt() {
 
             <div className="space-y-2">
               <Label>Prompt Content</Label>
-              <div className="rounded-md border bg-muted p-4 font-mono">
+              <div className="p-4 font-mono rounded-md border bg-muted">
                 {prompt.content}
               </div>
             </div>
@@ -288,15 +310,15 @@ export function EditPrompt() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Category</Label>
-                <div className="rounded-md border bg-muted p-2">{prompt.category}</div>
+                <div className="p-2 rounded-md border bg-muted">{prompt.category}</div>
               </div>
 
               <div className="space-y-2">
                 <Label>Model Types</Label>
                 <div className="flex flex-wrap gap-2">
                   {(Array.isArray(prompt.modelType) ? prompt.modelType : [prompt.modelType].filter(Boolean)).map((model) => (
-                    <div key={model} className="flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm">
-                      <ModelIcon model={model} className="h-4 w-4" />
+                    <div key={model} className="flex gap-1 items-center px-3 py-1 text-sm rounded-full bg-secondary">
+                      <ModelIcon model={model} className="w-4 h-4" />
                       {model}
                     </div>
                   ))}
@@ -310,7 +332,7 @@ export function EditPrompt() {
                 {(Array.isArray(prompt.tags) ? prompt.tags : [prompt.tags].filter(Boolean)).map((tag) => (
                   <div
                     key={tag}
-                    className="rounded-full bg-secondary px-3 py-1 text-sm"
+                    className="px-3 py-1 text-sm rounded-full bg-secondary"
                   >
                     {tag}
                   </div>

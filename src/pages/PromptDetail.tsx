@@ -9,10 +9,25 @@ import { Prompt } from '@/types';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ModelIcon } from '@/components/ModelIcon';
+import { cn } from '@/lib/utils';
 
 export default function PromptDetail() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +39,8 @@ export default function PromptDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
   const [isCopied, setIsCopied] = useState(false);
+  const [editedPrompt, setEditedPrompt] = useState<Partial<Prompt> | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const toggleFavoriteMutation = useMutation({
     mutationFn: async ({ promptId, isFavorite }: { promptId: string; isFavorite: boolean }) => {
@@ -159,20 +176,29 @@ export default function PromptDetail() {
     }
   };
 
-  const handleEdit = () => {
-    if (!prompt || !user) return;
+  const handleEdit = async () => {
+    if (!prompt || !user || !editedPrompt) return;
 
-    const promptUserId = prompt.authorId;
-    if (!promptUserId || (promptUserId !== user.uid && !user.isAdmin)) {
-      toast.error("You don't have permission to edit this prompt");
-      return;
+    try {
+      const promptRef = doc(db, 'prompts', prompt.id);
+      await setDoc(promptRef, {
+        ...prompt,
+        ...editedPrompt,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+
+      setPrompt({ ...prompt, ...editedPrompt });
+      setIsEditDialogOpen(false);
+      toast.success('Prompt updated successfully');
+    } catch (error) {
+      console.error('Error updating prompt:', error);
+      toast.error('Failed to update prompt');
     }
-
-    navigate(`/edit/${prompt.id}`);
   };
 
-  const isAuthor = user?.uid === prompt.authorId;
+  const isAuthor = user?.uid === prompt?.authorId;
   const isAdmin = user?.isAdmin;
+  const canEdit = user && prompt && (isAuthor || isAdmin);
 
   return (
     <div className="container py-8 max-w-4xl">
@@ -185,7 +211,7 @@ export default function PromptDetail() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{prompt.title}</BreadcrumbPage>
+            <BreadcrumbPage>{prompt?.title}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -194,12 +220,31 @@ export default function PromptDetail() {
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-3xl">{prompt.title}</CardTitle>
+              <CardTitle className="text-3xl">{prompt?.title}</CardTitle>
               <CardDescription className="mt-2">
-                Created by {prompt.authorName || 'Anonymous'}
+                Created by {prompt?.authorName || 'Anonymous'}
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <div className="flex flex-wrap gap-1.5">
+                {prompt?.modelType && (Array.isArray(prompt.modelType) ? prompt.modelType : [prompt.modelType].filter(Boolean)).map((model) => (
+                  <TooltipProvider key={model}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className={cn(
+                          "inline-flex justify-center items-center w-7 h-7 rounded-full bg-secondary/10",
+                          "ring-1 ring-inset ring-secondary/20"
+                        )}>
+                          <ModelIcon model={model} className="w-4 h-4 text-secondary-foreground" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{model}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              </div>
               {user && (
                 <TooltipProvider>
                   <Tooltip>
@@ -223,38 +268,94 @@ export default function PromptDetail() {
                   </Tooltip>
                 </TooltipProvider>
               )}
-              {user && (isAuthor || isAdmin) && (
-                <>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={handleEdit}>
-                          <PencilSquareIcon className="w-5 h-5" />
+              {canEdit && (
+                <div className="flex gap-2">
+                  <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogTrigger asChild>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <PencilSquareIcon className="w-5 h-5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit prompt</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Edit Prompt</DialogTitle>
+                        <DialogDescription>
+                          Make changes to your prompt here. Click save when you're done.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <label htmlFor="title">Title</label>
+                          <Input
+                            id="title"
+                            defaultValue={prompt?.title}
+                            onChange={(e) => setEditedPrompt({ ...editedPrompt, title: e.target.value })}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <label htmlFor="content">Content</label>
+                          <Textarea
+                            id="content"
+                            defaultValue={prompt?.content}
+                            onChange={(e) => setEditedPrompt({ ...editedPrompt, content: e.target.value })}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <label htmlFor="category">Category</label>
+                          <Input
+                            id="category"
+                            defaultValue={prompt?.category}
+                            onChange={(e) => setEditedPrompt({ ...editedPrompt, category: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                          Cancel
                         </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Edit prompt</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteDialogOpen(true)}
-                          className="text-destructive"
-                        >
-                          <TrashIcon className="w-5 h-5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Delete prompt</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </>
+                        <Button onClick={handleEdit}>Save changes</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <TrashIcon className="w-5 h-5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Delete prompt</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete your prompt.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               )}
               {isAdmin && (
                 <TooltipProvider>
@@ -370,25 +471,6 @@ export default function PromptDetail() {
           )}
         </CardContent>
       </Card>
-
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Prompt</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this prompt? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 } 

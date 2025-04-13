@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Prompt } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ClipboardDocumentIcon, ClipboardDocumentCheckIcon, HeartIcon } from '@heroicons/react/24/outline';
+import { ClipboardDocumentIcon, ClipboardDocumentCheckIcon, HeartIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '@/contexts/AuthContext';
 import { ModelIcon } from '@/components/ModelIcon';
@@ -19,7 +19,12 @@ interface PromptCardProps {
 
 export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isCopied, setIsCopied] = useState(false);
+
+  const isAuthor = user?.uid === prompt.authorId;
+  const isAdmin = user?.isAdmin;
+  const canEdit = user && (isAuthor || isAdmin);
 
   const handleCopy = async () => {
     try {
@@ -31,6 +36,10 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
       console.error('Failed to copy:', error);
       toast.error('Failed to copy prompt');
     }
+  };
+
+  const handleEdit = () => {
+    navigate(`/edit/${prompt.id}`);
   };
 
   return (
@@ -100,9 +109,29 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <Button variant="ghost" asChild>
-          <Link to={`/edit/${prompt.id}`}>View Details</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link to={`/prompt/${prompt.id}`}>View Details</Link>
+          </Button>
+          {canEdit && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleEdit}
+                  >
+                    <PencilSquareIcon className="w-5 h-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit prompt</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
         {user && (
           <TooltipProvider>
             <Tooltip>
