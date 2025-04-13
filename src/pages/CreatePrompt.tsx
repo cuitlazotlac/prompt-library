@@ -92,7 +92,7 @@ export function CreatePrompt() {
   };
 
   return (
-    <div className="container max-w-2xl py-8">
+    <div className="container py-8 max-w-2xl">
       <h1 className="mb-8 text-3xl font-bold">Create New Prompt</h1>
 
       {/* Ad Banner */}
@@ -102,7 +102,7 @@ export function CreatePrompt() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
-          <div className="flex items-baseline justify-between">
+          <div className="flex justify-between items-baseline">
             <Label htmlFor="title">Title</Label>
             <span className="text-sm text-muted-foreground">(Required)</span>
           </div>
@@ -115,7 +115,7 @@ export function CreatePrompt() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-baseline justify-between">
+          <div className="flex justify-between items-baseline">
             <Label htmlFor="description">Description</Label>
             <span className="text-sm text-muted-foreground">(Required)</span>
           </div>
@@ -128,7 +128,7 @@ export function CreatePrompt() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-baseline justify-between">
+          <div className="flex justify-between items-baseline">
             <Label htmlFor="content">Prompt Content</Label>
             <span className="text-sm text-muted-foreground">(Required)</span>
           </div>
@@ -142,7 +142,7 @@ export function CreatePrompt() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-baseline justify-between">
+          <div className="flex justify-between items-baseline">
             <Label htmlFor="category">Category</Label>
             <span className="text-sm text-muted-foreground">(Required)</span>
           </div>
@@ -164,7 +164,7 @@ export function CreatePrompt() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-baseline justify-between">
+          <div className="flex justify-between items-baseline">
             <Label>Model Types</Label>
             <span className="text-sm text-muted-foreground">(Optional)</span>
           </div>
@@ -196,7 +196,7 @@ export function CreatePrompt() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-baseline justify-between">
+          <div className="flex justify-between items-baseline">
             <Label htmlFor="tags">Tags (comma-separated)</Label>
             <span className="text-sm text-muted-foreground">(Optional)</span>
           </div>

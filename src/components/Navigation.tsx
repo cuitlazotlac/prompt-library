@@ -34,7 +34,7 @@ export default function Navigation({ searchQuery, onSearchChange }: NavigationPr
           <Link to="/" className="flex items-center mr-6 space-x-2">
             <img 
               src="/logo-nav.svg" 
-              alt="AI Prompt Library" 
+              alt="Sarcina - AI Prompt Library" 
               className="w-auto h-10 sm:h-12 md:h-14"
             />
           </Link>

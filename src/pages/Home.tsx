@@ -13,7 +13,11 @@ import {
   startAfter,
   DocumentData,
 } from "firebase/firestore";
-import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import {
+  PlusIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "@heroicons/react/24/outline";
 import { db } from "@/lib/firebase";
 import { Prompt } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,12 +49,16 @@ const modelTypes = [
   "Midjourney",
 ];
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 10;
 
 export function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(["All"]);
-  const [selectedModels, setSelectedModels] = useState<string[]>(["All AI Models"]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([
+    "All",
+  ]);
+  const [selectedModels, setSelectedModels] = useState<string[]>([
+    "All AI Models",
+  ]);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastVisible, setLastVisible] = useState<DocumentData | null>(null);
   const { user } = useAuth();
@@ -77,7 +85,7 @@ export function Home() {
 
       const querySnapshot = await getDocs(q);
       setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
-      
+
       return querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -166,7 +174,7 @@ export function Home() {
   // Get unique categories from prompts
   const categories = useMemo(() => {
     if (!prompts) return ["All"];
-    const uniqueCategories = new Set(prompts.map(prompt => prompt.category));
+    const uniqueCategories = new Set(prompts.map((prompt) => prompt.category));
     const allCategories = ["All", ...Array.from(uniqueCategories).sort()];
     // Initialize with all categories selected
     if (selectedCategories.length === 0 || selectedCategories[0] === "All") {
@@ -182,8 +190,16 @@ export function Home() {
     }
   }, []);
 
-  const getFilterLabel = (selected: string[], all: string[], allLabel: string) => {
-    if (selected.length === 0 || selected.length === all.length || (selected.length === 1 && selected[0] === allLabel)) {
+  const getFilterLabel = (
+    selected: string[],
+    all: string[],
+    allLabel: string
+  ) => {
+    if (
+      selected.length === 0 ||
+      selected.length === all.length ||
+      (selected.length === 1 && selected[0] === allLabel)
+    ) {
       return allLabel;
     }
     return `${selected.length} selected`;
@@ -213,7 +229,10 @@ export function Home() {
     } else if (values.length === 0) {
       // If nothing is selected, select "All"
       setSelectedModels(["All AI Models"]);
-    } else if (selectedModels.includes("All AI Models") && !values.includes("All AI Models")) {
+    } else if (
+      selectedModels.includes("All AI Models") &&
+      !values.includes("All AI Models")
+    ) {
       // If "All" was previously selected and now it's not, clear all selections
       setSelectedModels([]);
     } else {
@@ -223,17 +242,19 @@ export function Home() {
     setLastVisible(null);
   };
 
-  const filteredPrompts = prompts?.filter((prompt) => {
-    const matchesSearch = prompt.title
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      selectedCategories.includes("All") || selectedCategories.includes(prompt.category);
-    const matchesModel =
-      selectedModels.includes("All AI Models") ||
-      prompt.modelType.some(model => selectedModels.includes(model));
-    return matchesSearch && matchesCategory && matchesModel;
-  }) || [];
+  const filteredPrompts =
+    prompts?.filter((prompt) => {
+      const matchesSearch = prompt.title
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesCategory =
+        selectedCategories.includes("All") ||
+        selectedCategories.includes(prompt.category);
+      const matchesModel =
+        selectedModels.includes("All AI Models") ||
+        prompt.modelType.some((model) => selectedModels.includes(model));
+      return matchesSearch && matchesCategory && matchesModel;
+    }) || [];
 
   if (isLoading) {
     return (
@@ -248,7 +269,9 @@ export function Home() {
       <main className="container px-4 py-8 mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">AI Prompt Library</h1>
-          <p className="text-muted-foreground">Browse and discover AI prompts</p>
+          <p className="text-muted-foreground">
+            Browse and discover AI prompts
+          </p>
         </div>
 
         {/* Banner Ad */}
@@ -257,19 +280,11 @@ export function Home() {
         </div>
 
         <div className="mb-8 space-y-4">
-          <Input
-            type="text"
-            placeholder="Search prompts..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-md"
-          />
-          
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex-1 min-w-[200px]">
               <MultiSelect
                 label="Categories"
-                options={categories.filter(c => c !== "All")}
+                options={categories.filter((c) => c !== "All")}
                 value={selectedCategories}
                 onValueChange={handleCategoryChange}
                 allOptionLabel="All"
@@ -278,7 +293,7 @@ export function Home() {
             <div className="flex-1 min-w-[200px]">
               <MultiSelect
                 label="AI Models"
-                options={modelTypes.filter(m => m !== "All AI Models")}
+                options={modelTypes.filter((m) => m !== "All AI Models")}
                 value={selectedModels}
                 onValueChange={handleModelChange}
                 allOptionLabel="All AI Models"
@@ -287,10 +302,38 @@ export function Home() {
           </div>
         </div>
 
+        {/* Pagination Controls */}
+        <div className="flex gap-4 justify-center items-center mt-8">
+          <Button
+            variant="outline"
+            onClick={handlePrevPage}
+            disabled={currentPage === 1}
+            className="flex gap-2 items-center"
+          >
+            <ChevronLeftIcon className="w-4 h-4" />
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {currentPage}
+          </span>
+          <Button
+            variant="outline"
+            onClick={handleNextPage}
+            disabled={filteredPrompts.length < ITEMS_PER_PAGE}
+            className="flex gap-2 items-center"
+          >
+            Next
+            <ChevronRightIcon className="w-4 h-4" />
+          </Button>
+        </div>
+
         <div className="grid grid-cols-1 gap-6 mt-8 sm:grid-cols-2">
           {isLoading ? (
             Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-[300px] w-full rounded-lg bg-muted animate-pulse" />
+              <div
+                key={i}
+                className="h-[300px] w-full rounded-lg bg-muted animate-pulse"
+              />
             ))
           ) : filteredPrompts.length > 0 ? (
             filteredPrompts.map((prompt) => (
