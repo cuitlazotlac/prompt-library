@@ -71,7 +71,7 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
       </CardHeader>
       <CardContent>
         <div className="relative p-4 mb-4 rounded-lg bg-muted">
-          <pre className="text-sm whitespace-pre-wrap line-clamp-3">{prompt.content}</pre>
+          <pre className="text-sm whitespace-pre-wrap line-clamp-6">{prompt.content}</pre>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -113,48 +113,52 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
           <Button variant="outline" asChild>
             <Link to={`/prompt/${prompt.id}`}>View Details</Link>
           </Button>
-          {canEdit && (
+          <div className={cn("w-9", canEdit ? "block" : "invisible")}>
+            {canEdit && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleEdit}
+                    >
+                      <PencilSquareIcon className="w-5 h-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Edit prompt</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        </div>
+        <div className={cn("w-9", user ? "block" : "invisible")}>
+          {user && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={handleEdit}
+                    onClick={() => onFavorite(prompt.id, isFavorite)}
+                    className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
                   >
-                    <PencilSquareIcon className="w-5 h-5" />
+                    {isFavorite ? (
+                      <HeartSolidIcon className="w-5 h-5" />
+                    ) : (
+                      <HeartIcon className="w-5 h-5" />
+                    )}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Edit prompt</p>
+                  <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
         </div>
-        {user && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onFavorite(prompt.id, isFavorite)}
-                  className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
-                >
-                  {isFavorite ? (
-                    <HeartSolidIcon className="w-5 h-5" />
-                  ) : (
-                    <HeartIcon className="w-5 h-5" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
       </CardFooter>
     </Card>
   );
