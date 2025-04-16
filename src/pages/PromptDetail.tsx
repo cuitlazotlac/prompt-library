@@ -33,7 +33,7 @@ import { SharePrompt } from '@/components/SharePrompt';
 export default function PromptDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -198,8 +198,7 @@ export default function PromptDetail() {
   };
 
   const isAuthor = user?.uid === prompt?.authorId;
-  const isAdmin = user?.isAdmin;
-  const canEdit = user && prompt && (isAuthor || isAdmin);
+  const canEdit = user && prompt && (isAuthor || isAdmin());
 
   return (
     <div className="container py-8 max-w-4xl">
@@ -270,6 +269,24 @@ export default function PromptDetail() {
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                {canEdit && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => navigate(`/edit/${prompt.id}`)}
+                        >
+                          <PencilSquareIcon className="w-5 h-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Edit prompt</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
