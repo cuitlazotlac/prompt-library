@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -26,20 +25,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const [searchQuery, setSearchQuery] = useState('');
-
   return (
     <div className="font-sans">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ThemeProvider>
             <Router>
-              <Navigation 
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-              />
+              <Navigation />
               <Routes>
-                <Route path="/" element={<Home searchQuery={searchQuery} />} />
+                <Route path="/" element={<Home />} />
                 <Route path="/prompt/:id" element={<PromptDetail />} />
                 <Route path="/create" element={<CreatePrompt />} />
                 <Route 

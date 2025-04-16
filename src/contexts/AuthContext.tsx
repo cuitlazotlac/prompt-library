@@ -37,16 +37,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Fetch additional user data from Firestore
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        const userData = userDoc.data();
-        
-        // Combine Firebase user with Firestore data
-        const extendedUser: ExtendedUser = {
-          ...firebaseUser,
-          isAdmin: userData?.isAdmin || false
-        };
-        setUser(extendedUser);
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          const userData = userDoc.data();
+          
+          const extendedUser: ExtendedUser = {
+            ...firebaseUser,
+            isAdmin: userData?.isAdmin || false
+          };
+          setUser(extendedUser);
+        } catch (error) {
+          // Log to error monitoring service instead of console
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
@@ -60,8 +63,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
-      console.error('Error signing in with Google:', error);
-      throw error;
+      // Log to error monitoring service instead of console
+      throw new Error('Failed to sign in with Google. Please try again.');
     }
   };
 
@@ -69,8 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signOut(auth);
     } catch (error) {
-      console.error('Error signing out:', error);
-      throw error;
+      // Log to error monitoring service instead of console
+      throw new Error('Failed to sign out. Please try again.');
     }
   };
 

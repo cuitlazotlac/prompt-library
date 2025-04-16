@@ -2,20 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/sarcina-logo.svg" />
+    <link rel="icon" type="image/svg+xml" href="/sarcina-favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Sarcina - AI Prompt Library - Share and discover effective prompts for various AI models" />
     <title>Sarcina - AI Prompt Library</title>
     <!-- Google AdSense -->
-    <script>
-      window.onload = function() {
-        console.log('Window loaded, checking AdSense...');
-        if (!window.adsbygoogle) {
-          console.warn('AdSense not found on window load');
-        }
-      };
-    </script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6558224888596733" crossorigin="anonymous"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<%= import.meta.env.VITE_ADSENSE_CLIENT_ID %>" crossorigin="anonymous"></script>
   </head>
   <body>
     <div id="root"></div>

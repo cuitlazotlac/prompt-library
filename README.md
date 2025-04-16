@@ -50,12 +50,14 @@ npm install
 
 4. Create a `.env` file in the root directory with your Firebase configuration:
 ```env
-VITE_FIREBASE_API_KEY=your-api-key
-VITE_FIREBASE_AUTH_DOMAIN=your-auth-domain
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-storage-bucket
-VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
-VITE_FIREBASE_APP_ID=your-app-id
+VITE_FIREBASE_API_KEY=your-api-key-here
+VITE_FIREBASE_AUTH_DOMAIN=your-auth-domain-here
+VITE_FIREBASE_PROJECT_ID=your-project-id-here
+VITE_FIREBASE_STORAGE_BUCKET=your-storage-bucket-here
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id-here
+VITE_FIREBASE_APP_ID=your-app-id-here
+VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id-here
+VITE_ADSENSE_CLIENT_ID=your-adsense-client-id-here
 ```
 
 5. Start the development server:
