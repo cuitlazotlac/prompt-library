@@ -275,9 +275,9 @@ export function Home() {
         </div>
 
         {/* Banner Ad */}
-        <div className="mb-8">
+        {/* <div className="mb-8">
           <AdUnit type="banner" />
-        </div>
+        </div> */}
 
         <div className="mb-8 space-y-4">
           <div className="flex flex-wrap gap-4 items-end">

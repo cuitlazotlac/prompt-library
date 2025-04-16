@@ -26,7 +26,7 @@ export async function uploadFile(file: File, path: string): Promise<{ url: strin
       name: file.name,
     };
   } catch (error) {
-    console.error('Error uploading file:', error);
-    throw error;
+    // Log to error monitoring service instead of console
+    throw new Error('Failed to upload file. Please try again.');
   }
 } 
