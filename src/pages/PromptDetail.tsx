@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ModelIcon } from '@/components/ModelIcon';
 import { cn } from '@/lib/utils';
+import { SharePrompt } from '@/components/SharePrompt';
 
 export default function PromptDetail() {
   const { id } = useParams<{ id: string }>();
@@ -225,7 +226,7 @@ export default function PromptDetail() {
                 Created by {prompt?.authorName || 'Anonymous'}
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <div className="flex flex-wrap gap-1.5">
                 {prompt?.modelType && (Array.isArray(prompt.modelType) ? prompt.modelType : [prompt.modelType].filter(Boolean)).map((model) => (
                   <TooltipProvider key={model}>
@@ -245,132 +246,35 @@ export default function PromptDetail() {
                   </TooltipProvider>
                 ))}
               </div>
-              {user && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleFavorite}
-                        className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
-                      >
-                        {isFavorite ? (
-                          <HeartSolidIcon className="w-5 h-5" />
-                        ) : (
-                          <HeartIcon className="w-5 h-5" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              {canEdit && (
-                <div className="flex gap-2">
-                  <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                    <DialogTrigger asChild>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <PencilSquareIcon className="w-5 h-5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Edit prompt</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit Prompt</DialogTitle>
-                        <DialogDescription>
-                          Make changes to your prompt here. Click save when you're done.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                          <label htmlFor="title">Title</label>
-                          <Input
-                            id="title"
-                            defaultValue={prompt?.title}
-                            onChange={(e) => setEditedPrompt({ ...editedPrompt, title: e.target.value })}
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <label htmlFor="content">Content</label>
-                          <Textarea
-                            id="content"
-                            defaultValue={prompt?.content}
-                            onChange={(e) => setEditedPrompt({ ...editedPrompt, content: e.target.value })}
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <label htmlFor="category">Category</label>
-                          <Input
-                            id="category"
-                            defaultValue={prompt?.category}
-                            onChange={(e) => setEditedPrompt({ ...editedPrompt, category: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                          Cancel
+              <div className="flex items-center gap-2">
+                <SharePrompt 
+                  promptId={prompt.id} 
+                  title={prompt.title}
+                />
+                {user && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={handleFavorite}
+                          className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
+                        >
+                          {isFavorite ? (
+                            <HeartSolidIcon className="w-5 h-5" />
+                          ) : (
+                            <HeartIcon className="w-5 h-5" />
+                          )}
                         </Button>
-                        <Button onClick={handleEdit}>Save changes</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <TrashIcon className="w-5 h-5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Delete prompt</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete your prompt.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              )}
-              {isAdmin && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <FlagIcon className="w-5 h-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Flag content</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
             </div>
           </div>
         </CardHeader>
