@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ModelIcon } from '@/components/ModelIcon';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { SharePrompt } from '@/components/SharePrompt';
 
 interface PromptCardProps {
   prompt: Prompt;
@@ -108,33 +109,35 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
           ))}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <div className="flex gap-2">
+      <CardFooter className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
           <Button variant="outline" asChild>
             <Link to={`/prompt/${prompt.id}`}>View Details</Link>
           </Button>
-          <div className={cn("w-9", canEdit ? "block" : "invisible")}>
-            {canEdit && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleEdit}
-                    >
-                      <PencilSquareIcon className="w-5 h-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Edit prompt</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
+          {canEdit && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleEdit}
+                  >
+                    <PencilSquareIcon className="w-5 h-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit prompt</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
-        <div className={cn("w-9", user ? "block" : "invisible")}>
+        <div className="flex items-center gap-2">
+          <SharePrompt 
+            promptId={prompt.id} 
+            title={prompt.title}
+          />
           {user && (
             <TooltipProvider>
               <Tooltip>

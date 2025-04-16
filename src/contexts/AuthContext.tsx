@@ -6,48 +6,63 @@ import {
   GoogleAuthProvider
 } from 'firebase/auth';
 import { auth, googleProvider, db } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { User as FirebaseUser } from 'firebase/auth';
-
-interface ExtendedUser extends FirebaseUser {
-  isAdmin?: boolean;
-}
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { User } from '../types';
 
 interface AuthContextType {
-  user: ExtendedUser | null;
+  user: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  isAdmin: () => boolean;
+  isCreator: () => boolean;
+  canEditPrompt: (creatorId: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<ExtendedUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          const userData = userDoc.data();
+          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          const userDoc = await getDoc(userDocRef);
           
-          const extendedUser: ExtendedUser = {
-            ...firebaseUser,
-            isAdmin: userData?.isAdmin || false
-          };
-          setUser(extendedUser);
+          if (userDoc.exists()) {
+            // Update last login
+            await setDoc(userDocRef, {
+              lastLogin: serverTimestamp()
+            }, { merge: true });
+
+            const userData = userDoc.data();
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email!,
+              displayName: firebaseUser.displayName!,
+              photoURL: firebaseUser.photoURL!,
+              role: userData.role || 'viewer',
+              createdAt: userData.createdAt,
+              lastLogin: userData.lastLogin
+            });
+          } else {
+            // Create new user with viewer role
+            const newUser = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+              role: 'viewer',
+              createdAt: serverTimestamp(),
+              lastLogin: serverTimestamp()
+            };
+            await setDoc(userDocRef, newUser);
+            setUser(newUser as User);
+          }
         } catch (error) {
-          // Log to error monitoring service instead of console
           setUser(null);
         }
       } else {
@@ -63,7 +78,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
-      // Log to error monitoring service instead of console
       throw new Error('Failed to sign in with Google. Please try again.');
     }
   };
@@ -72,9 +86,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signOut(auth);
     } catch (error) {
-      // Log to error monitoring service instead of console
       throw new Error('Failed to sign out. Please try again.');
     }
+  };
+
+  const isAdmin = () => user?.role === 'admin';
+  const isCreator = () => user?.role === 'creator' || user?.role === 'admin';
+  const canEditPrompt = (creatorId: string) => {
+    if (!user) return false;
+    return user.role === 'admin' || user.uid === creatorId;
   };
 
   const value = {
@@ -82,6 +102,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     signInWithGoogle,
     logout,
+    isAdmin,
+    isCreator,
+    canEditPrompt
   };
 
   return (
@@ -89,4 +112,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {!loading && children}
     </AuthContext.Provider>
   );
-} 
+}
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}; 

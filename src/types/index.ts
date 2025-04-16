@@ -3,7 +3,9 @@ export interface User {
   email: string;
   displayName: string;
   photoURL: string;
-  isAdmin: boolean;
+  role: 'admin' | 'creator' | 'viewer';
+  createdAt: string;
+  lastLogin: string;
 }
 
 export interface Prompt {
@@ -16,8 +18,8 @@ export interface Prompt {
   modelType: string[];
   authorId: string;
   authorName: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   upvotes: number;
   isFeatured: boolean;
   isFlagged: boolean;
@@ -27,6 +29,8 @@ export interface Prompt {
     url: string;
     name: string;
   }[];
+  creatorId: string;
+  isPublic: boolean;
 }
 
 export interface UserFavorite {
