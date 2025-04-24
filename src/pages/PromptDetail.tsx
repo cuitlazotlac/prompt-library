@@ -29,6 +29,9 @@ import {
 import { ModelIcon } from '@/components/ModelIcon';
 import { cn } from '@/lib/utils';
 import { SharePrompt } from '@/components/SharePrompt';
+import { ImagePreview } from '@/components/ImagePreview';
+import { VoteButtons } from '@/components/VoteButtons';
+import { isFeatureEnabled } from '@/lib/posthog';
 
 export default function PromptDetail() {
   const { id } = useParams<{ id: string }>();
@@ -81,38 +84,84 @@ export default function PromptDetail() {
         const docRef = doc(db, 'prompts', id);
         const docSnap = await getDoc(docRef);
         
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const promptData = {
-            id: docSnap.id,
-            ...data,
-            createdAt: data.createdAt?.toDate() || new Date(),
-            updatedAt: data.updatedAt?.toDate() || new Date(),
-            modelType: Array.isArray(data.modelType) ? data.modelType : [data.modelType].filter(Boolean),
-            tags: data.tags || [],
-          } as Prompt;
-          
-          setPrompt(promptData);
-          
-          // Check if user has favorited
-          if (user) {
-            try {
-              const favoriteRef = doc(db, 'favorites', user.uid, 'prompts', id);
-              const favoriteSnap = await getDoc(favoriteRef);
-              setIsFavorite(favoriteSnap.exists());
-            } catch (error) {
-              console.error('Error checking favorite status:', error);
-              setIsFavorite(false);
-            }
-          }
-        } else {
+        if (!docSnap.exists()) {
           toast.error('Prompt not found');
           navigate('/');
+          return;
+        }
+
+        const data = docSnap.data();
+        console.log('Raw prompt data:', data); // Debug log
+        
+        // Validate required fields
+        const requiredFields = ['title', 'content', 'description', 'category'];
+        const missingFields = requiredFields.filter(field => !data[field]);
+        
+        if (missingFields.length > 0) {
+          console.error('Missing required fields:', missingFields);
+          toast.error('Invalid prompt data');
+          navigate('/');
+          return;
+        }
+        
+        // Fetch user's vote if logged in
+        let userVote: 'up' | 'down' | null = null;
+        if (user) {
+          try {
+            const voteRef = doc(db, 'votes', user.uid, 'prompts', id);
+            const voteSnap = await getDoc(voteRef);
+            if (voteSnap.exists()) {
+              userVote = voteSnap.data().vote;
+            }
+          } catch (error) {
+            console.error('Error fetching user vote:', error);
+            // Don't fail the whole prompt load if vote fetch fails
+          }
+        }
+        
+        const promptData = {
+          id: docSnap.id,
+          title: data.title,
+          description: data.description,
+          content: data.content,
+          category: data.category,
+          model: data.model || '',
+          modelType: Array.isArray(data.modelType) ? data.modelType : [data.modelType].filter(Boolean),
+          tags: data.tags || [],
+          userId: data.userId || data.authorId || '',
+          authorId: data.authorId || data.userId || '',
+          authorName: data.authorName || 'Anonymous',
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+          favorites: data.favorites || 0,
+          favoriteUsers: data.favoriteUsers || [],
+          upvotes: data.upvotes || 0,
+          usageTips: data.usageTips || [],
+          recommendedModels: data.recommendedModels || [],
+          images: data.images || [],
+          userVote,
+          score: data.score || 0,
+          voteCount: data.voteCount || 0,
+        } as Prompt;
+        
+        console.log('Processed prompt data:', promptData); // Debug log
+        setPrompt(promptData);
+        
+        // Check if user has favorited
+        if (user) {
+          try {
+            const favoriteRef = doc(db, 'favorites', user.uid, 'prompts', id);
+            const favoriteSnap = await getDoc(favoriteRef);
+            setIsFavorite(favoriteSnap.exists());
+          } catch (error) {
+            console.error('Error checking favorite status:', error);
+            setIsFavorite(false);
+          }
         }
       } catch (error) {
         console.error('Error fetching prompt:', error);
-        toast.error('Failed to load prompt');
-        navigate('/');
+        toast.error('Failed to load prompt. Please try again later.');
+        // Don't navigate away on error, just show the error message
       } finally {
         setIsLoading(false);
       }
@@ -219,11 +268,23 @@ export default function PromptDetail() {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-3xl">{prompt?.title}</CardTitle>
-              <CardDescription className="mt-2">
-                Created by {prompt?.authorName || 'Anonymous'}
-              </CardDescription>
+            <div className="flex gap-4 items-start">
+              {isFeatureEnabled('enable-voting') && (
+                <div className="flex-shrink-0">
+                  <VoteButtons
+                    promptId={prompt.id}
+                    initialVote={prompt.userVote}
+                    initialScore={prompt.score || 0}
+                    layout="horizontal"
+                  />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-3xl">{prompt?.title}</CardTitle>
+                <CardDescription className="mt-2">
+                  Created by {prompt?.authorName || 'Anonymous'}
+                </CardDescription>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex flex-wrap gap-1.5">
@@ -324,17 +385,11 @@ export default function PromptDetail() {
           </div>
 
           {prompt.images && prompt.images.length > 0 && (
-            <div>
-              <h3 className="mb-2 font-semibold">Images</h3>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {prompt.images.map((image, index) => (
-                  <div key={index} className="overflow-hidden relative rounded-lg aspect-square">
-                    <img
-                      src={image.url}
-                      alt={image.name}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4">Attached Images</h3>
+              <div className="flex flex-wrap gap-4">
+                {prompt.images.map((image) => (
+                  <ImagePreview key={image.url} image={image} size="lg" />
                 ))}
               </div>
             </div>

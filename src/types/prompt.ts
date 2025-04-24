@@ -21,4 +21,8 @@ export interface Prompt {
     url: string;
     name: string;
   }[];
+  // Voting related fields
+  score?: number;
+  userVote?: 'up' | 'down' | null;
+  voteCount?: number;
 } 

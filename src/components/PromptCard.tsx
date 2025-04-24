@@ -11,6 +11,9 @@ import { ModelIcon } from '@/components/ModelIcon';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { SharePrompt } from '@/components/SharePrompt';
+import { ImagePreview } from './ImagePreview';
+import { VoteButtons } from './VoteButtons';
+import { isFeatureEnabled } from '@/lib/posthog';
 
 interface PromptCardProps {
   prompt: Prompt;
@@ -44,33 +47,41 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
   };
 
   return (
-    <Card className="overflow-hidden relative group">
-      <div className="absolute right-4 top-4 flex flex-wrap gap-1.5">
-        {(Array.isArray(prompt.modelType) ? prompt.modelType : [prompt.modelType].filter(Boolean)).map((model) => (
-          <TooltipProvider key={model}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className={cn(
-                  "inline-flex justify-center items-center w-7 h-7 rounded-full bg-secondary/10",
-                  "ring-1 ring-inset ring-secondary/20"
-                )}>
-                  <ModelIcon model={model} className="w-4 h-4 text-secondary-foreground" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{model}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ))}
-      </div>
+    <Card className="h-full flex flex-col">
       <CardHeader>
-        <CardTitle className="line-clamp-1 leading-tight min-h-[1.5rem]">{prompt.title}</CardTitle>
-        <CardDescription className="line-clamp-2">
-          {prompt.description}
-        </CardDescription>
+        <div className="flex gap-4 items-start">
+          {isFeatureEnabled('enable-voting') && (
+            <div className="flex-shrink-0">
+              <VoteButtons
+                promptId={prompt.id}
+                initialVote={prompt.userVote}
+                initialScore={prompt.score || 0}
+                layout="horizontal"
+                size="sm"
+              />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <CardTitle className="line-clamp-1 leading-tight min-h-[1.5rem]">{prompt.title}</CardTitle>
+            <CardDescription className="line-clamp-2">
+              {prompt.description}
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
+        <p className="text-muted-foreground line-clamp-2 mb-4">
+          {prompt.description}
+        </p>
+        
+        {prompt.images && prompt.images.length > 0 && (
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+            {prompt.images.map((image) => (
+              <ImagePreview key={image.url} image={image} size="sm" />
+            ))}
+          </div>
+        )}
+
         <div className="relative p-4 mb-4 rounded-lg bg-muted">
           <pre className="text-sm whitespace-pre-wrap line-clamp-6">{prompt.content}</pre>
           <TooltipProvider>

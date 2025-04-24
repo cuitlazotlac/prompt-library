@@ -1,8 +1,19 @@
 [
   {
-    "origin": ["http://localhost:3000", "http://localhost:3001"],
-    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "origin": [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://prompt-library-60332.web.app",
+      "https://prompt-library-60332.firebaseapp.com"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
     "maxAgeSeconds": 3600,
-    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"]
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "Content-Range",
+      "Content-Disposition",
+      "Access-Control-Allow-Origin"
+    ]
   }
 ] 

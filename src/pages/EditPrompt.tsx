@@ -27,6 +27,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ImageUpload } from '@/components/ImageUpload';
+import { isFeatureEnabled } from '@/lib/posthog';
 
 export function EditPrompt() {
   const { id } = useParams();
@@ -41,6 +43,7 @@ export function EditPrompt() {
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [images, setImages] = useState<{ url: string; name: string }[]>([]);
 
   const queryOptions: UseQueryOptions<Prompt, Error> = {
     queryKey: ["prompt", id],
@@ -93,6 +96,7 @@ export function EditPrompt() {
       setCategory(prompt.category);
       setSelectedModels(prompt.modelType || []);
       setTags(prompt.tags);
+      setImages(prompt.images || []);
     }
   }, [prompt, user, navigate, id]);
 
@@ -129,6 +133,7 @@ export function EditPrompt() {
         category,
         modelType: selectedModels,
         tags,
+        images,
         updatedAt: new Date(),
       });
 
@@ -250,7 +255,7 @@ export function EditPrompt() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="modelTypes">AI Models</Label>
+            <Label htmlFor="modelTypes">Preferred AI Models</Label>
             <Select
               value={selectedModels.join(',')}
               onValueChange={(value: string) => setSelectedModels(value.split(','))}
@@ -261,7 +266,7 @@ export function EditPrompt() {
               <SelectContent>
                 {AI_MODELS.map((model) => (
                   <SelectItem key={model} value={model}>
-                    <div className="flex items-center gap-2">
+                    <div className="flex gap-2 items-center">
                       <ModelIcon model={model} className="w-4 h-4" />
                       {model}
                     </div>
@@ -273,40 +278,49 @@ export function EditPrompt() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="tags">Tags</Label>
-          <div className="flex flex-wrap gap-2">
+          <Label>Tags</Label>
+          <div className="flex flex-wrap gap-2 mb-2">
             {tags.map((tag) => (
-              <div
+              <span
                 key={tag}
-                className="flex gap-1 items-center px-3 py-1 text-sm rounded-full bg-secondary"
+                className="inline-flex gap-1 items-center px-2 py-1 text-sm rounded-md bg-secondary text-secondary-foreground"
               >
                 {tag}
                 <button
                   type="button"
                   onClick={() => handleRemoveTag(tag)}
-                  className="ml-1 text-muted-foreground hover:text-foreground"
+                  className="text-secondary-foreground/50 hover:text-secondary-foreground"
                 >
                   ×
                 </button>
-              </div>
+              </span>
             ))}
           </div>
           <Input
-            id="tags"
             value={newTag}
             onChange={(e) => setNewTag(e.target.value)}
             onKeyDown={handleAddTag}
-            placeholder="Type a tag and press Enter"
+            placeholder="Add a tag and press Enter"
           />
         </div>
 
-        <div className="flex items-center justify-between">
+        {isFeatureEnabled('enable-image-upload') && (
+          <div className="space-y-2">
+            <Label>Images</Label>
+            <ImageUpload
+              images={images}
+              onChange={setImages}
+            />
+          </div>
+        )}
+
+        <div className="flex justify-between items-center">
           <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogTrigger asChild>
               <Button
                 type="button"
                 variant="destructive"
-                className="flex items-center gap-2"
+                className="flex gap-2 items-center"
               >
                 <TrashIcon className="w-4 h-4" />
                 Delete
