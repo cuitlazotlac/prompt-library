@@ -1,32 +1,35 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
-import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { MagnifyingGlassIcon, UserCircleIcon } from '@heroicons/react/24/outline';
-import { SearchModal } from '@/components/SearchModal';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { PlusIcon } from "@heroicons/react/24/outline";
+import { SearchIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { SearchModal } from "@/components/SearchModal";
 
 export default function Navigation() {
   const { user, logout, signInWithGoogle } = useAuth();
   const { setTheme } = useTheme();
   const navigate = useNavigate();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/');
+      navigate("/");
     } catch (error) {
-      console.error('Failed to log out:', error);
+      console.error("Failed to log out:", error);
     }
   };
 
@@ -34,98 +37,114 @@ export default function Navigation() {
     try {
       await signInWithGoogle();
     } catch (error) {
-      console.error('Failed to log in:', error);
+      console.error("Failed to log in:", error);
     }
   };
 
   return (
     <>
       <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex items-center h-16">
-          <div className="flex mr-4">
+        <div className="container flex items-center h-14">
+          {/* Left section with logo */}
+          <div className="flex items-center">
             <Link to="/" className="flex items-center mr-6 space-x-2">
-              <img 
-                src="/logo-nav.svg" 
-                alt="Sarcina - AI Prompt Library" 
-                className="w-auto h-8 sm:h-9 md:h-10"
-              />
+              <img src="/logo-nav.svg" alt="Logo" className="w-8 h-8" />
             </Link>
           </div>
-          <div className="flex flex-1 justify-between items-center space-x-2 md:justify-end">
-            <Button
-              variant="outline"
-              className="w-full md:w-[200px] lg:w-[300px] justify-start text-muted-foreground"
-              onClick={() => setIsSearchOpen(true)}
-            >
-              <MagnifyingGlassIcon className="mr-2 h-4 w-4" />
-              Search prompts...
-            </Button>
-            <nav className="flex items-center space-x-2">
-              <ThemeToggle />
-              {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                      <div className="relative">
-                        {user.email === "cuitlazotlac@gmail.com" && (
-                          <span className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-sm">
-                            👑
-                          </span>
-                        )}
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.photoURL || undefined} alt={user.displayName || ''} />
-                          <AvatarFallback>
-                            {user.displayName?.[0]?.toUpperCase() || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <div className="flex items-center justify-start gap-2 p-2">
-                      <div className="flex flex-col space-y-1 leading-none">
-                        {user.displayName && (
-                          <p className="font-medium">{user.displayName}</p>
-                        )}
-                        {user.email && (
-                          <p className="w-[200px] truncate text-sm text-muted-foreground">
-                            {user.email}
-                          </p>
-                        )}
-                      </div>
+
+          {/* Center section with search */}
+          <div className="flex flex-1 justify-center mx-auto max-w-xl">
+            <div className="relative w-full">
+              <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search prompts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onClick={() => setIsSearchOpen(true)}
+                className="pl-8 w-full h-9 cursor-pointer"
+                readOnly // Make it clear this is a button to open the modal
+              />
+            </div>
+          </div>
+
+          {/* Right section */}
+          <div className="flex items-center space-x-2">
+            {user && (
+              <Button
+                onClick={() => navigate("/create")}
+                className="flex gap-2 items-center"
+              >
+                <PlusIcon className="w-4 h-4" />
+                Create Prompt
+              </Button>
+            )}
+            <ThemeToggle />
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="relative w-8 h-8 rounded-full"
+                  >
+                    <div className="relative">
+                      {user.email === "cuitlazotlac@gmail.com" && (
+                        <span className="absolute -top-3 left-1/2 text-sm transform -translate-x-1/2">
+                          👑
+                        </span>
+                      )}
+                      <Avatar className="w-8 h-8">
+                        <AvatarImage
+                          src={user.photoURL || undefined}
+                          alt={user.displayName || ""}
+                        />
+                        <AvatarFallback>
+                          {user.displayName?.[0]?.toUpperCase() || "U"}
+                        </AvatarFallback>
+                      </Avatar>
                     </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/profile')}>
-                      Profile
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="flex gap-2 justify-start items-center p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      {user.displayName && (
+                        <p className="font-medium">{user.displayName}</p>
+                      )}
+                      {user.email && (
+                        <p className="w-[200px] truncate text-sm text-muted-foreground">
+                          {user.email}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/profile")}>
+                    Profile
+                  </DropdownMenuItem>
+                  {user.isAdmin && (
+                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+                      Admin Dashboard
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/create')}>
-                      Create Prompt
-                    </DropdownMenuItem>
-                    {user.isAdmin && (
-                      <DropdownMenuItem onClick={() => navigate('/admin')}>
-                        Admin Dashboard
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>
-                      Log out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Button onClick={handleLogin} variant="default">
-                  Sign In
-                </Button>
-              )}
-            </nav>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button onClick={handleLogin} variant="default">
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
       </nav>
 
-      <SearchModal 
+      <SearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
       />
     </>
   );
-} 
+}

@@ -10,6 +10,8 @@ import { Profile } from '@/pages/Profile';
 import Admin from '@/pages/Admin';
 import Navigation from '@/components/Navigation';
 import PromptDetail from '@/pages/PromptDetail';
+import posthog from '@/lib/posthog';
+import { useEffect } from 'react';
 import '@/styles/themes.css';
 
 const queryClient = new QueryClient();
@@ -25,6 +27,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  useEffect(() => {
+    // Capture page views when the route changes
+    const handleRouteChange = () => {
+      posthog.capture('$pageview')
+    }
+
+    window.addEventListener('popstate', handleRouteChange)
+    
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange)
+    }
+  }, [])
+
   return (
     <div className="font-sans">
       <QueryClientProvider client={queryClient}>

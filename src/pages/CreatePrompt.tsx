@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/select';
 import '@/styles/model-colors.css';
 import { AdUnit } from '@/components/AdUnit';
+import { ImageUpload } from '@/components/ImageUpload';
+import { isFeatureEnabled } from '@/lib/posthog';
 
 const categories = ['Writing', 'Coding', 'Analysis', 'Creative', 'Business'];
 const modelTypes = [
@@ -39,6 +41,7 @@ interface CreatePromptFormData {
   category: string;
   modelType: string[];
   tags: string;
+  images: { url: string; name: string }[];
 }
 
 export function CreatePrompt() {
@@ -52,6 +55,7 @@ export function CreatePrompt() {
     category: '',
     modelType: [],
     tags: '',
+    images: [],
   });
 
   if (!user) {
@@ -78,6 +82,7 @@ export function CreatePrompt() {
         createdAt: new Date(),
         updatedAt: new Date(),
         upvotes: 0,
+        images: formData.images,
       };
 
       const docRef = await addDoc(collection(db, 'prompts'), promptData);
@@ -165,7 +170,7 @@ export function CreatePrompt() {
 
         <div className="space-y-2">
           <div className="flex justify-between items-baseline">
-            <Label>Model Types</Label>
+            <Label>Preferred AI Models</Label>
             <span className="text-sm text-muted-foreground">(Optional)</span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -207,6 +212,16 @@ export function CreatePrompt() {
             placeholder="e.g. writing, story, creative"
           />
         </div>
+
+        {isFeatureEnabled('enable-image-upload') && (
+          <div className="space-y-2">
+            <Label>Images (Optional)</Label>
+            <ImageUpload
+              images={formData.images}
+              onChange={(images) => setFormData({ ...formData, images })}
+            />
+          </div>
+        )}
 
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Creating...' : 'Create Prompt'}

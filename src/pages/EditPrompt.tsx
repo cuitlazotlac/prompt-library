@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -12,15 +12,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "react-hot-toast";
 import { Prompt } from "@/types";
 import { ModelIcon } from "@/components/ModelIcon";
-import { BookOpenIcon } from "@heroicons/react/24/outline";
+import { BookOpenIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { AdUnit } from '@/components/AdUnit';
-
-const modelTypes = ['ChatGPT', 'Claude', 'Gemini'];
+import { useQueryClient } from "@tanstack/react-query";
+import { AI_MODELS } from '@/lib/constants';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ImageUpload } from '@/components/ImageUpload';
+import { isFeatureEnabled } from '@/lib/posthog';
 
 export function EditPrompt() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [content, setContent] = useState("");
@@ -28,7 +42,8 @@ export function EditPrompt() {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [images, setImages] = useState<{ url: string; name: string }[]>([]);
 
   const queryOptions: UseQueryOptions<Prompt, Error> = {
     queryKey: ["prompt", id],
@@ -81,6 +96,7 @@ export function EditPrompt() {
       setCategory(prompt.category);
       setSelectedModels(prompt.modelType || []);
       setTags(prompt.tags);
+      setImages(prompt.images || []);
     }
   }, [prompt, user, navigate, id]);
 
@@ -105,7 +121,6 @@ export function EditPrompt() {
     // Check permissions before submitting
     if (prompt.authorId !== user.uid && !user.isAdmin) {
       toast.error("You don't have permission to edit this prompt");
-      setIsEditing(false);
       return;
     }
 
@@ -118,14 +133,42 @@ export function EditPrompt() {
         category,
         modelType: selectedModels,
         tags,
+        images,
         updatedAt: new Date(),
       });
 
+      // Invalidate both the specific prompt query and the prompts list
+      queryClient.invalidateQueries({ queryKey: ["prompt", id] });
+      queryClient.invalidateQueries({ queryKey: ["prompts"] });
+      
       toast.success("Prompt updated successfully!");
-      setIsEditing(false);
+      navigate(`/prompt/${id}`);
     } catch (error) {
       console.error("Error updating prompt:", error);
       toast.error("Failed to update prompt");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!user || !id || !prompt) return;
+
+    // Check permissions
+    if (!user.isAdmin && prompt.authorId !== user.uid) {
+      toast.error("You don't have permission to delete this prompt");
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, "prompts", id));
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ["prompt", id] });
+      queryClient.invalidateQueries({ queryKey: ["prompts"] });
+      
+      toast.success("Prompt deleted successfully");
+      navigate("/"); // Navigate back to home after deletion
+    } catch (error) {
+      console.error("Error deleting prompt:", error);
+      toast.error("Failed to delete prompt");
     }
   };
 
@@ -149,199 +192,172 @@ export function EditPrompt() {
 
   return (
     <div className="container py-8 max-w-2xl">
-      <h1 className="mb-8 text-3xl font-bold">Edit Prompt</h1>
-
-      {/* Ad Banner */}
       <div className="mb-8">
-        <AdUnit type="banner" />
+        <div className="flex gap-2 items-center mb-4 text-sm text-muted-foreground">
+          <Link to="/" className="flex gap-1 items-center transition-colors hover:text-foreground">
+            <BookOpenIcon className="w-4 h-4" />
+            <span>Home</span>
+          </Link>
+          <span>/</span>
+          <span className="text-foreground">Edit Prompt</span>
+        </div>
+        <h1 className="text-3xl font-bold">Edit Prompt</h1>
+        <p className="text-muted-foreground">Update your AI prompt</p>
       </div>
 
-      <div className="py-8 mx-auto max-w-2xl">
-        <div className="mb-8">
-          <div className="flex gap-2 items-center mb-4 text-sm text-muted-foreground">
-            <Link to="/" className="flex gap-1 items-center transition-colors hover:text-foreground">
-              <BookOpenIcon className="w-4 h-4" />
-              <span>Home</span>
-            </Link>
-            <span>/</span>
-            <span className="text-foreground">{isEditing ? "Edit Prompt" : "Prompt Details"}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold">{isEditing ? "Edit Prompt" : "Prompt Details"}</h1>
-              <p className="text-muted-foreground">
-                {isEditing ? "Update your AI prompt" : "View prompt details"}
-              </p>
-            </div>
-            {canEdit && (
-              <Button
-                variant="outline"
-                onClick={() => setIsEditing(!isEditing)}
-              >
-                {isEditing ? "Cancel Edit" : "Edit Prompt"}
-              </Button>
-            )}
-          </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="title">Title</Label>
+          <Input
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
         </div>
 
-        {isEditing ? (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-              />
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+          />
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                required
-              />
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="content">Prompt Content</Label>
+          <Textarea
+            id="content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            required
+            className="min-h-[200px]"
+          />
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="content">Prompt Content</Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                required
-                className="min-h-[200px]"
-              />
-            </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Writing">Writing</SelectItem>
+                <SelectItem value="Coding">Coding</SelectItem>
+                <SelectItem value="Analysis">Analysis</SelectItem>
+                <SelectItem value="Creative">Creative</SelectItem>
+                <SelectItem value="Business">Business</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Writing">Writing</SelectItem>
-                    <SelectItem value="Coding">Coding</SelectItem>
-                    <SelectItem value="Analysis">Analysis</SelectItem>
-                    <SelectItem value="Creative">Creative</SelectItem>
-                    <SelectItem value="Business">Business</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="modelTypes">Model Types</Label>
-                <Select
-                  value={selectedModels.join(',')}
-                  onValueChange={(value: string) => setSelectedModels(value.split(','))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select model types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {modelTypes.map((model) => (
-                      <SelectItem key={model} value={model}>
-                        {model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tags">Tags</Label>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <div
-                    key={tag}
-                    className="flex gap-1 items-center px-3 py-1 text-sm rounded-full bg-secondary"
-                  >
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="ml-1 text-muted-foreground hover:text-foreground"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <Input
-                id="tags"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={handleAddTag}
-                placeholder="Type a tag and press Enter"
-              />
-            </div>
-
-            <div className="flex gap-4 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditing(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">Update Prompt</Button>
-            </div>
-          </form>
-        ) : (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-semibold">{prompt.title}</h2>
-              <p className="text-muted-foreground">{prompt.description}</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Prompt Content</Label>
-              <div className="p-4 font-mono rounded-md border bg-muted">
-                {prompt.content}
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <div className="p-2 rounded-md border bg-muted">{prompt.category}</div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Model Types</Label>
-                <div className="flex flex-wrap gap-2">
-                  {(Array.isArray(prompt.modelType) ? prompt.modelType : [prompt.modelType].filter(Boolean)).map((model) => (
-                    <div key={model} className="flex gap-1 items-center px-3 py-1 text-sm rounded-full bg-secondary">
+          <div className="space-y-2">
+            <Label htmlFor="modelTypes">Preferred AI Models</Label>
+            <Select
+              value={selectedModels.join(',')}
+              onValueChange={(value: string) => setSelectedModels(value.split(','))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select AI models" />
+              </SelectTrigger>
+              <SelectContent>
+                {AI_MODELS.map((model) => (
+                  <SelectItem key={model} value={model}>
+                    <div className="flex gap-2 items-center">
                       <ModelIcon model={model} className="w-4 h-4" />
                       {model}
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tags</Label>
-              <div className="flex flex-wrap gap-2">
-                {(Array.isArray(prompt.tags) ? prompt.tags : [prompt.tags].filter(Boolean)).map((tag) => (
-                  <div
-                    key={tag}
-                    className="px-3 py-1 text-sm rounded-full bg-secondary"
-                  >
-                    {tag}
-                  </div>
+                  </SelectItem>
                 ))}
-              </div>
-            </div>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Tags</Label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex gap-1 items-center px-2 py-1 text-sm rounded-md bg-secondary text-secondary-foreground"
+              >
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTag(tag)}
+                  className="text-secondary-foreground/50 hover:text-secondary-foreground"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+          <Input
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+            onKeyDown={handleAddTag}
+            placeholder="Add a tag and press Enter"
+          />
+        </div>
+
+        {isFeatureEnabled('enable-image-upload') && (
+          <div className="space-y-2">
+            <Label>Images</Label>
+            <ImageUpload
+              images={images}
+              onChange={setImages}
+            />
           </div>
         )}
-      </div>
+
+        <div className="flex justify-between items-center">
+          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                variant="destructive"
+                className="flex gap-2 items-center"
+              >
+                <TrashIcon className="w-4 h-4" />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the prompt
+                  "{prompt?.title}".
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <div className="flex gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(`/prompt/${id}`)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit">Update Prompt</Button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 } 
