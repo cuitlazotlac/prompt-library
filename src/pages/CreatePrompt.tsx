@@ -101,9 +101,9 @@ export function CreatePrompt() {
       <h1 className="mb-8 text-3xl font-bold">Create New Prompt</h1>
 
       {/* Ad Banner */}
-      <div className="mb-8">
+      {/* <div className="mb-8">
         <AdUnit type="banner" />
-      </div>
+      </div> */}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">

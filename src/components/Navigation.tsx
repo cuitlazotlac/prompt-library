@@ -78,7 +78,6 @@ export default function Navigation() {
                 Create Prompt
               </Button>
             )}
-            <ThemeToggle />
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -121,7 +120,7 @@ export default function Navigation() {
                   <DropdownMenuItem onClick={() => navigate("/profile")}>
                     Profile
                   </DropdownMenuItem>
-                  {user.isAdmin && (
+                  {user.role === 'admin' && (
                     <DropdownMenuItem onClick={() => navigate("/admin")}>
                       Admin Dashboard
                     </DropdownMenuItem>
