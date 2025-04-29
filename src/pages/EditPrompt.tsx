@@ -249,7 +249,9 @@ export function EditPrompt() {
                 <SelectItem value="Coding">Coding</SelectItem>
                 <SelectItem value="Analysis">Analysis</SelectItem>
                 <SelectItem value="Creative">Creative</SelectItem>
+                <SelectItem value="Analysis">Image Generation</SelectItem>
                 <SelectItem value="Business">Business</SelectItem>
+                <SelectItem value="Analysis">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>

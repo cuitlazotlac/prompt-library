@@ -22,7 +22,7 @@ import { AdUnit } from '@/components/AdUnit';
 import { ImageUpload } from '@/components/ImageUpload';
 import { isFeatureEnabled } from '@/lib/posthog';
 
-const categories = ['Writing', 'Coding', 'Analysis', 'Creative', 'Business'];
+const categories = ['Writing', 'Coding', 'Analysis', 'Creative', 'Business', 'Image Generation', 'Other'];
 const modelTypes = [
   'All AI Models',
   'ChatGPT',

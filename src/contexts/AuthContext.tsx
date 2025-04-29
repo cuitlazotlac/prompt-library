@@ -1,13 +1,13 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
+import React, { createContext, useContext, useEffect, useState } from "react";
+import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
-  GoogleAuthProvider
-} from 'firebase/auth';
-import { auth, googleProvider, db } from '../lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { User } from '../types';
+  GoogleAuthProvider,
+} from "firebase/auth";
+import { auth, googleProvider, db } from "../lib/firebase";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { User } from "../types";
 
 interface AuthContextType {
   user: User | null;
@@ -29,14 +29,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          const userDocRef = doc(db, "users", firebaseUser.uid);
           const userDoc = await getDoc(userDocRef);
-          
+
           if (userDoc.exists()) {
             // Update last login
-            await setDoc(userDocRef, {
-              lastLogin: serverTimestamp()
-            }, { merge: true });
+            await setDoc(
+              userDocRef,
+              {
+                lastLogin: serverTimestamp(),
+              },
+              { merge: true }
+            );
 
             const userData = userDoc.data();
             setUser({
@@ -44,9 +48,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               email: firebaseUser.email!,
               displayName: firebaseUser.displayName!,
               photoURL: firebaseUser.photoURL!,
-              role: userData.role || 'viewer',
+              role: userData.role || "viewer",
               createdAt: userData.createdAt,
-              lastLogin: userData.lastLogin
+              lastLogin: userData.lastLogin,
             });
           } else {
             // Create new user with viewer role
@@ -55,9 +59,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
-              role: 'viewer',
+              role: "viewer",
               createdAt: serverTimestamp(),
-              lastLogin: serverTimestamp()
+              lastLogin: serverTimestamp(),
             };
             await setDoc(userDocRef, newUser);
             setUser(newUser as User);
@@ -78,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
-      throw new Error('Failed to sign in with Google. Please try again.');
+      throw new Error("Failed to sign in with Google. Please try again.");
     }
   };
 
@@ -86,15 +90,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signOut(auth);
     } catch (error) {
-      throw new Error('Failed to sign out. Please try again.');
+      throw new Error("Failed to sign out. Please try again.");
     }
   };
 
-  const isAdmin = () => user?.role === 'admin';
-  const isCreator = () => user?.role === 'creator' || user?.role === 'admin';
+  const isAdmin = () => user?.role === "admin";
+  const isCreator = () => user?.role === "creator" || user?.role === "admin";
   const canEditPrompt = (creatorId: string) => {
     if (!user) return false;
-    return user.role === 'admin' || user.uid === creatorId;
+    return user.role === "admin" || user.uid === creatorId;
   };
 
   const value = {
@@ -104,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     isAdmin,
     isCreator,
-    canEditPrompt
+    canEditPrompt,
   };
 
   return (
@@ -117,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-}; 
+};
