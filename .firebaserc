@@ -1,5 +1,15 @@
 {
   "projects": {
-    "default": "prompt-library-60332"
-  }
+    "default": "prompt-lab-app"
+  },
+  "targets": {
+    "prompt-library-60332": {
+      "hosting": {
+        "prompt-lab-app": [
+          "prompt-lab-app"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

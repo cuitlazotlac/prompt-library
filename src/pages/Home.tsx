@@ -17,6 +17,7 @@ import {
   PlusIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  FunnelIcon,
 } from "@heroicons/react/24/outline";
 import { db } from "@/lib/firebase";
 import { Prompt } from "@/types";
@@ -37,6 +38,8 @@ import {
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import "@/styles/model-colors.css";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const modelTypes = [
   "All AI Models",
@@ -268,63 +271,57 @@ export function Home() {
     <div className="min-h-screen bg-background">
       <main className="container px-4 py-8 mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">AI Prompt Library</h1>
+          <h1 className="text-3xl font-bold">Prompt Lab</h1>
           <p className="text-muted-foreground">
-            Browse and discover AI prompts
+            Browse, discover and share AI prompts
           </p>
         </div>
 
-        {/* Banner Ad */}
-        {/* <div className="mb-8">
-          <AdUnit type="banner" />
-        </div> */}
-
-        <div className="mb-8 space-y-4">
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <MultiSelect
-                label="Categories"
-                options={categories.filter((c) => c !== "All")}
-                value={selectedCategories}
-                onValueChange={handleCategoryChange}
-                allOptionLabel="All"
-              />
+        <div className="mb-8">
+          <div className="flex flex-col gap-6 p-6 rounded-lg border shadow-sm bg-card">
+            <div className="flex gap-2 items-center text-muted-foreground">
+              <FunnelIcon className="w-5 h-5" />
+              <span className="font-medium">Filters</span>
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <MultiSelect
-                label="AI Models"
-                options={modelTypes.filter((m) => m !== "All AI Models")}
-                value={selectedModels}
-                onValueChange={handleModelChange}
-                allOptionLabel="All AI Models"
-              />
+            
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <MultiSelect
+                  label="Categories"
+                  value={selectedCategories}
+                  onValueChange={handleCategoryChange}
+                  options={categories.filter(c => c !== "All")}
+                  allOptionLabel="All"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <MultiSelect
+                  label="AI Models"
+                  value={selectedModels}
+                  onValueChange={handleModelChange}
+                  options={modelTypes.filter(m => m !== "All AI Models")}
+                  allOptionLabel="All AI Models"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                {filteredPrompts.length} prompts found
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  handleCategoryChange(["All"]);
+                  handleModelChange(["All AI Models"]);
+                }}
+              >
+                Clear filters
+              </Button>
             </div>
           </div>
-        </div>
-
-        {/* Pagination Controls */}
-        <div className="flex gap-4 justify-center items-center mt-8">
-          <Button
-            variant="outline"
-            onClick={handlePrevPage}
-            disabled={currentPage === 1}
-            className="flex gap-2 items-center"
-          >
-            <ChevronLeftIcon className="w-4 h-4" />
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {currentPage}
-          </span>
-          <Button
-            variant="outline"
-            onClick={handleNextPage}
-            disabled={filteredPrompts.length < ITEMS_PER_PAGE}
-            className="flex gap-2 items-center"
-          >
-            Next
-            <ChevronRightIcon className="w-4 h-4" />
-          </Button>
         </div>
 
         <div className="grid grid-cols-1 gap-6 mt-8 sm:grid-cols-2">

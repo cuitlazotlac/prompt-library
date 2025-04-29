@@ -47,7 +47,7 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
   };
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="flex flex-col h-full">
       <CardHeader>
         <div className="flex gap-4 items-start">
           {isFeatureEnabled('enable-voting') && (
@@ -61,21 +61,21 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
               />
             </div>
           )}
-          <div className="min-w-0 flex-1">
+          <div className="flex-1 min-w-0">
             <CardTitle className="line-clamp-1 leading-tight min-h-[1.5rem]">{prompt.title}</CardTitle>
-            <CardDescription className="line-clamp-2">
+            {/* <CardDescription className="line-clamp-2">
               {prompt.description}
-            </CardDescription>
+            </CardDescription> */}
           </div>
         </div>
       </CardHeader>
       <CardContent className="flex-1">
-        <p className="text-muted-foreground line-clamp-2 mb-4">
+        <p className="mb-4 text-muted-foreground line-clamp-2">
           {prompt.description}
         </p>
         
         {prompt.images && prompt.images.length > 0 && (
-          <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+          <div className="flex overflow-x-auto gap-2 pb-2 mb-4">
             {prompt.images.map((image) => (
               <ImagePreview key={image.url} image={image} size="sm" />
             ))}
@@ -121,7 +121,7 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
         </div>
       </CardContent>
       <CardFooter className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
+        <div className="flex gap-2 items-center">
           <Button variant="outline" asChild>
             <Link to={`/prompt/${prompt.id}`}>View Details</Link>
           </Button>
@@ -144,7 +144,7 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
             </TooltipProvider>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex gap-2 items-center">
           <SharePrompt 
             promptId={prompt.id} 
             title={prompt.title}

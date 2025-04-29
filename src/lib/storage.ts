@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, getSupabaseSession } from './supabase';
 import { auth } from './firebase';
 
 // Constants for file validation
@@ -23,6 +23,10 @@ export async function uploadFile(
     // Check Firebase authentication
     const user = auth.currentUser;
     if (!user) throw new Error('Must be logged in to upload');
+
+    // Get Supabase session
+    const session = await getSupabaseSession();
+    if (!session) throw new Error('Failed to authenticate with Supabase');
 
     // Generate unique filename
     const timestamp = Date.now();

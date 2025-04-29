@@ -1,120 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { collection, query, where, getDocs, doc, deleteDoc, getDoc } from 'firebase/firestore';
-import { Copy, Edit, Trash2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { collection, query, where, getDocs, doc, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Prompt } from '@/types';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AdUnit } from '@/components/AdUnit';
-
-interface PromptCardProps {
-  prompt: Prompt;
-  showActions?: boolean;
-}
-
-function PromptCard({ prompt, showActions = true }: PromptCardProps) {
-  const navigate = useNavigate();
-
-  const handleCopyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(prompt.content);
-      toast.success('Prompt copied to clipboard!');
-    } catch (error) {
-      toast.error('Failed to copy prompt');
-    }
-  };
-
-  const handleDeletePrompt = async () => {
-    try {
-      await deleteDoc(doc(db, 'prompts', prompt.id));
-      toast.success('Prompt deleted successfully');
-    } catch (error) {
-      console.error('Error deleting prompt:', error);
-      toast.error('Failed to delete prompt');
-    }
-  };
-
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="mb-4 flex items-start justify-between">
-          <h3 className="text-lg font-semibold">{prompt.title}</h3>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCopyToClipboard}
-              className="h-8 w-8"
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-            {showActions && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate(`/edit/${prompt.id}`)}
-                  className="h-8 w-8"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleDeletePrompt}
-                  className="h-8 w-8 text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-        <p className="mb-4 text-sm text-muted-foreground">{prompt.description}</p>
-        <div className="mb-4 flex flex-wrap gap-2">
-          <span className="rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
-            {prompt.category}
-          </span>
-          {prompt.modelType.map((model) => (
-            <span
-              key={model}
-              className="rounded-full bg-secondary/10 px-2 py-1 text-xs text-secondary-foreground"
-            >
-              {model}
-            </span>
-          ))}
-          {prompt.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border px-2 py-1 text-xs text-muted-foreground"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {showActions ? (
-              `${prompt.upvotes} upvotes`
-            ) : (
-              <>By {prompt.authorName} • {prompt.upvotes} upvotes</>
-            )}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+import { PromptCard } from '@/components/PromptCard';
 
 export function Profile() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   if (!user) {
     navigate('/');
@@ -159,10 +60,64 @@ export function Profile() {
     },
   });
 
+  const handleFavorite = async (promptId: string, isCurrentlyFavorite: boolean) => {
+    if (!user) {
+      toast.error("You must be logged in to favorite prompts");
+      return;
+    }
+
+    try {
+      const favoriteRef = doc(db, 'favorites', user.uid, 'prompts', promptId);
+      if (isCurrentlyFavorite) {
+        await deleteDoc(favoriteRef);
+        queryClient.setQueryData(
+          ["userFavorites", user.uid],
+          (oldData: Prompt[] | undefined) => 
+            oldData ? oldData.filter(prompt => prompt.id !== promptId) : []
+        );
+        toast.success('Removed from favorites');
+      } else {
+        const promptRef = doc(db, "prompts", promptId);
+        const promptSnap = await getDoc(promptRef);
+        if (!promptSnap.exists()) {
+          toast.error('Prompt not found');
+          return;
+        }
+        
+        await setDoc(favoriteRef, {
+          promptId,
+          timestamp: new Date(),
+        });
+
+        const promptData = promptSnap.data();
+        const newPrompt = {
+          id: promptSnap.id,
+          ...promptData,
+          modelType: Array.isArray(promptData.modelType) 
+            ? promptData.modelType 
+            : [promptData.modelType].filter(Boolean),
+          tags: promptData.tags || [],
+        } as Prompt;
+
+        queryClient.setQueryData(
+          ["userFavorites", user.uid],
+          (oldData: Prompt[] | undefined) => 
+            oldData ? [...oldData, newPrompt] : [newPrompt]
+        );
+        
+        toast.success('Added to favorites');
+      }
+    } catch (error) {
+      console.error('Error updating favorite:', error);
+      toast.error('Failed to update favorites');
+      queryClient.invalidateQueries({ queryKey: ["userFavorites", user.uid] });
+    }
+  };
+
   return (
     <div className="container py-8">
-      <div className="mb-8 flex items-center gap-4">
-        <Avatar className="h-16 w-16">
+      <div className="flex gap-4 items-center mb-8">
+        <Avatar className="w-16 h-16">
           <AvatarImage src={user.photoURL || undefined} alt={user.displayName || ''} />
           <AvatarFallback>
             {user.displayName?.[0]?.toUpperCase() || 'U'}
@@ -175,9 +130,9 @@ export function Profile() {
       </div>
 
       {/* Ad Banner */}
-      <div className="mb-8">
+      {/* <div className="mb-8">
         <AdUnit type="banner" />
-      </div>
+      </div> */}
 
       <Tabs defaultValue="prompts">
         <TabsList>
@@ -201,7 +156,12 @@ export function Profile() {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {userPrompts?.map((prompt) => (
-                <PromptCard key={prompt.id} prompt={prompt} />
+                <PromptCard
+                  key={prompt.id}
+                  prompt={prompt}
+                  isFavorite={false}
+                  onFavorite={handleFavorite}
+                />
               ))}
             </div>
           )}
@@ -221,7 +181,12 @@ export function Profile() {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {favorites?.map((prompt) => (
-                <PromptCard key={prompt.id} prompt={prompt} showActions={false} />
+                <PromptCard
+                  key={prompt.id}
+                  prompt={prompt}
+                  isFavorite={true}
+                  onFavorite={handleFavorite}
+                />
               ))}
             </div>
           )}

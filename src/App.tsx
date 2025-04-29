@@ -10,6 +10,7 @@ import { Profile } from '@/pages/Profile';
 import Admin from '@/pages/Admin';
 import Navigation from '@/components/Navigation';
 import PromptDetail from '@/pages/PromptDetail';
+import { Footer } from '@/components/Footer';
 import posthog from '@/lib/posthog';
 import { useEffect } from 'react';
 import '@/styles/themes.css';
@@ -41,27 +42,32 @@ function App() {
   }, [])
 
   return (
-    <div className="font-sans">
+    <div className="font-sans min-h-screen flex flex-col">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ThemeProvider>
             <Router>
-              <Navigation />
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/prompt/:id" element={<PromptDetail />} />
-                <Route path="/create" element={<CreatePrompt />} />
-                <Route 
-                  path="/edit/:id" 
-                  element={
-                    <ProtectedRoute>
-                      <EditPrompt />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/admin" element={<Admin />} />
-              </Routes>
+              <div className="flex flex-col min-h-screen pb-14">
+                <Navigation />
+                <main className="flex-1">
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/prompt/:id" element={<PromptDetail />} />
+                    <Route path="/create" element={<CreatePrompt />} />
+                    <Route 
+                      path="/edit/:id" 
+                      element={
+                        <ProtectedRoute>
+                          <EditPrompt />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/admin" element={<Admin />} />
+                  </Routes>
+                </main>
+              </div>
+              <Footer />
               <Toaster />
             </Router>
           </ThemeProvider>
