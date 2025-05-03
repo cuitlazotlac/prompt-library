@@ -267,7 +267,96 @@ export default function PromptDetail() {
 
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-start">
+          {/* Mobile layout */}
+          <div className="block md:hidden w-full">
+            {/* Row 1: Vote component */}
+            {isFeatureEnabled('enable-voting') && (
+              <div className="flex justify-start mb-2">
+                <VoteButtons
+                  promptId={prompt.id}
+                  initialVote={prompt.userVote}
+                  initialScore={prompt.score || 0}
+                  layout="horizontal"
+                />
+              </div>
+            )}
+            {/* Row 2: Action icons */}
+            <div className="flex justify-end items-center gap-2 mb-2">
+              <div className="flex flex-wrap gap-1.5">
+                {prompt?.modelType && (Array.isArray(prompt.modelType) ? prompt.modelType : [prompt.modelType].filter(Boolean)).map((model) => (
+                  <TooltipProvider key={model}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className={cn(
+                          "inline-flex justify-center items-center w-7 h-7 rounded-full bg-secondary/10",
+                          "ring-1 ring-inset ring-secondary/20"
+                        )}>
+                          <ModelIcon model={model} className="w-4 h-4 text-secondary-foreground" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{model}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              </div>
+              <SharePrompt 
+                promptId={prompt.id} 
+                title={prompt.title}
+              />
+              {user && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleFavorite}
+                        className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
+                      >
+                        {isFavorite ? (
+                          <HeartSolidIcon className="w-5 h-5" />
+                        ) : (
+                          <HeartIcon className="w-5 h-5" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {canEdit && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/edit/${prompt.id}`)}
+                      >
+                        <PencilSquareIcon className="w-5 h-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Edit prompt</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+            {/* Row 3: Title and author */}
+            <div className="w-full">
+              <CardTitle className="text-2xl break-words">{prompt?.title}</CardTitle>
+              <CardDescription className="mt-1">
+                Created by {prompt?.authorName || 'Anonymous'}
+              </CardDescription>
+            </div>
+          </div>
+          {/* Desktop layout (unchanged) */}
+          <div className="hidden md:flex justify-between items-start">
             <div className="flex gap-4 items-start">
               {isFeatureEnabled('enable-voting') && (
                 <div className="flex-shrink-0">
@@ -306,53 +395,51 @@ export default function PromptDetail() {
                   </TooltipProvider>
                 ))}
               </div>
-              <div className="flex items-center gap-2">
-                <SharePrompt 
-                  promptId={prompt.id} 
-                  title={prompt.title}
-                />
-                {user && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={handleFavorite}
-                          className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
-                        >
-                          {isFavorite ? (
-                            <HeartSolidIcon className="w-5 h-5" />
-                          ) : (
-                            <HeartIcon className="w-5 h-5" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-                {canEdit && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigate(`/edit/${prompt.id}`)}
-                        >
-                          <PencilSquareIcon className="w-5 h-5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Edit prompt</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </div>
+              <SharePrompt 
+                promptId={prompt.id} 
+                title={prompt.title}
+              />
+              {user && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleFavorite}
+                        className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
+                      >
+                        {isFavorite ? (
+                          <HeartSolidIcon className="w-5 h-5" />
+                        ) : (
+                          <HeartIcon className="w-5 h-5" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {canEdit && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/edit/${prompt.id}`)}
+                      >
+                        <PencilSquareIcon className="w-5 h-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Edit prompt</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -423,10 +510,14 @@ export default function PromptDetail() {
             </div>
           </div>
 
-          {prompt.usageTips && (
+          {Array.isArray(prompt.usageTips) && prompt.usageTips.length > 0 && prompt.usageTips.some(tip => tip && tip.trim() !== '') && (
             <div>
               <h3 className="mb-2 font-semibold">Usage Tips</h3>
-              <p className="text-muted-foreground">{prompt.usageTips}</p>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                {prompt.usageTips.filter(tip => tip && tip.trim() !== '').map((tip, idx) => (
+                  <li key={idx}>{tip}</li>
+                ))}
+              </ul>
             </div>
           )}
 
