@@ -36,9 +36,13 @@ export function VoteButtons({
       if (!user) throw new Error('User not authenticated');
 
       try {
-        await runTransaction(db, async (transaction) => {
+        console.log('Starting vote transaction:', { promptId, userId: user.uid, newVote });
+        
+        const result = await runTransaction(db, async (transaction) => {
           const promptRef = doc(db, 'prompts', promptId);
           const voteRef = doc(db, 'votes', user.uid, 'prompts', promptId);
+          
+          console.log('Getting documents:', { promptId, userId: user.uid });
           const promptDoc = await transaction.get(promptRef);
           const voteDoc = await transaction.get(voteRef);
 
@@ -48,45 +52,105 @@ export function VoteButtons({
 
           const promptData = promptDoc.data();
           const currentScore = promptData.score || 0;
+          const currentVoteCount = promptData.voteCount || 0;
           const oldVote = voteDoc.exists() ? voteDoc.data().vote : null;
 
-          // Calculate score change
+          console.log('Current state:', { 
+            currentScore, 
+            currentVoteCount, 
+            oldVote, 
+            newVote 
+          });
+
+          // Calculate score change and vote count change
           let scoreChange = 0;
-          if (newVote === 'up') scoreChange = oldVote === 'down' ? 2 : (oldVote === 'up' ? 0 : 1);
-          else if (newVote === 'down') scoreChange = oldVote === 'up' ? -2 : (oldVote === 'down' ? 0 : -1);
-          else scoreChange = oldVote === 'up' ? -1 : (oldVote === 'down' ? 1 : 0);
+          let voteCountChange = 0;
+
+          if (newVote === 'up') {
+            if (oldVote === 'down') {
+              scoreChange = 2;
+              voteCountChange = 0;
+            } else if (oldVote === 'up') {
+              scoreChange = -1;
+              voteCountChange = -1;
+            } else {
+              scoreChange = 1;
+              voteCountChange = 1;
+            }
+          } else if (newVote === 'down') {
+            if (oldVote === 'up') {
+              scoreChange = -2;
+              voteCountChange = 0;
+            } else if (oldVote === 'down') {
+              scoreChange = 1;
+              voteCountChange = -1;
+            } else {
+              scoreChange = -1;
+              voteCountChange = 1;
+            }
+          } else {
+            // Removing vote
+            scoreChange = oldVote === 'up' ? -1 : (oldVote === 'down' ? 1 : 0);
+            voteCountChange = oldVote ? -1 : 0;
+          }
+
+          console.log('Calculated changes:', { scoreChange, voteCountChange });
 
           // Update or delete vote document
           if (newVote === null) {
+            console.log('Deleting vote document');
             transaction.delete(voteRef);
           } else {
+            console.log('Setting vote document:', { vote: newVote });
             transaction.set(voteRef, {
               vote: newVote,
               timestamp: new Date(),
             });
           }
 
-          // Update prompt score
+          // Update prompt score and vote count
+          const newScore = currentScore + scoreChange;
+          const newVoteCount = currentVoteCount + voteCountChange;
+          
+          console.log('Updating prompt:', { 
+            newScore, 
+            newVoteCount 
+          });
+          
           transaction.update(promptRef, {
-            score: currentScore + scoreChange,
+            score: newScore,
+            voteCount: newVoteCount,
             updatedAt: new Date()
           });
 
-          return { scoreChange };
+          return { scoreChange, voteCountChange };
         });
+
+        console.log('Transaction completed successfully:', result);
+        return result;
       } catch (error) {
         console.error('Transaction failed:', error);
         throw error;
       }
     },
     onSuccess: (_, { newVote }) => {
+      console.log('Vote mutation succeeded:', { newVote });
+      
       // Update local state
       setVote(newVote);
       
       // Calculate new score
       const scoreChange = (() => {
-        if (newVote === 'up') return vote === 'down' ? 2 : (vote === 'up' ? 0 : 1);
-        if (newVote === 'down') return vote === 'up' ? -2 : (vote === 'down' ? 0 : -1);
+        if (newVote === 'up') {
+          if (vote === 'down') return 2;
+          if (vote === 'up') return -1;
+          return 1;
+        }
+        if (newVote === 'down') {
+          if (vote === 'up') return -2;
+          if (vote === 'down') return 1;
+          return -1;
+        }
         return vote === 'up' ? -1 : (vote === 'down' ? 1 : 0);
       })();
       
@@ -106,6 +170,8 @@ export function VoteButtons({
       setIsLoginDialogOpen(true);
       return;
     }
+
+    console.log('Handling vote:', { currentVote: vote, newVote });
 
     // If clicking the same vote again, remove the vote
     if (vote === newVote) {

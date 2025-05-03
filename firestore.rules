@@ -35,13 +35,12 @@ service cloud.firestore {
 
     // Prompts collection
     match /prompts/{promptId} {
-      allow read: if resource.data.isPublic == true || isAdmin() || 
-                   resource.data.creatorId == request.auth.uid;
+      allow read: if true;  // Allow public read access to prompts
       allow create: if isAuthenticated();
       allow update: if isAdmin() || 
                    (resource.data.creatorId == request.auth.uid) ||
                    (isAuthenticated() && 
-                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['score', 'updatedAt']));
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['score', 'updatedAt', 'voteCount', 'userVote']));
       allow delete: if isAdmin() || 
                    (resource.data.creatorId == request.auth.uid);
     }
@@ -60,9 +59,15 @@ service cloud.firestore {
     match /votes/{userId} {
       match /prompts/{promptId} {
         allow read: if isAuthenticated();
-        allow create, update: if isAuthenticated() && isOwner(userId);
-        allow delete: if isAuthenticated() && isOwner(userId);
+        allow create, update, delete: if isAuthenticated() && isOwner(userId);
       }
+    }
+
+    // Allow reading all votes for a prompt
+    match /votes/{userId}/prompts/{promptId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && isOwner(userId);
+      allow delete: if isAuthenticated() && isOwner(userId);
     }
   }
 } 

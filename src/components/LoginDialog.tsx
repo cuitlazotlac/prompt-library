@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { FcGoogle } from 'react-icons/fc';
 
 interface LoginDialogProps {
   open: boolean;
@@ -23,8 +24,8 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={signInWithGoogle}>
-            Sign In with Google
+          <Button onClick={signInWithGoogle} className="flex items-center gap-2">
+            Login/Register with <FcGoogle className="w-5 h-5" />
           </Button>
         </div>
       </DialogContent>
