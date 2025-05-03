@@ -55,7 +55,8 @@ export default function Navigation() {
 
           {/* Center section with search */}
           <div className="flex flex-1 justify-center mx-auto max-w-xl">
-            <div className="relative w-full">
+            {/* Desktop search bar */}
+            <div className="hidden md:block relative w-full">
               <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search prompts..."
@@ -66,6 +67,16 @@ export default function Navigation() {
                 readOnly // Make it clear this is a button to open the modal
               />
             </div>
+            {/* Mobile search icon */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setIsSearchOpen(true)}
+              aria-label="Open search"
+            >
+              <SearchIcon className="h-5 w-5" />
+            </Button>
           </div>
 
           {/* Right section */}
