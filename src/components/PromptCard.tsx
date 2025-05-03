@@ -14,6 +14,7 @@ import { SharePrompt } from '@/components/SharePrompt';
 import { ImagePreview } from './ImagePreview';
 import { VoteButtons } from './VoteButtons';
 import { isFeatureEnabled } from '@/lib/posthog';
+import { LoginDialog } from '@/components/LoginDialog';
 
 interface PromptCardProps {
   prompt: Prompt;
@@ -25,6 +26,8 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isCopied, setIsCopied] = useState(false);
+  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  const [pendingFavorite, setPendingFavorite] = useState<null | { promptId: string; isCurrentlyFavorite: boolean }>(null);
 
   const isAuthor = user?.uid === prompt.authorId;
   const isAdmin = user?.isAdmin;
@@ -46,10 +49,49 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
     navigate(`/edit/${prompt.id}`);
   };
 
+  // Handle favorite click
+  const handleFavoriteClick = () => {
+    if (!user) {
+      setPendingFavorite({ promptId: prompt.id, isCurrentlyFavorite: isFavorite });
+      setIsLoginDialogOpen(true);
+      return;
+    }
+    onFavorite(prompt.id, isFavorite);
+  };
+
+  // After login, if there was a pending favorite, perform it
+  const handleLoginDialogChange = (open: boolean) => {
+    setIsLoginDialogOpen(open);
+    if (!open && user && pendingFavorite) {
+      onFavorite(pendingFavorite.promptId, pendingFavorite.isCurrentlyFavorite);
+      setPendingFavorite(null);
+    }
+  };
+
   return (
     <Card className="flex flex-col h-full">
-      <CardHeader>
-        <div className="flex gap-4 items-start">
+      <CardHeader className="pb-2">
+        {/* Mobile layout: voting row, then title row, then description row */}
+        <div className="block sm:hidden w-full">
+          {/* Row 1: Voting */}
+          {isFeatureEnabled('enable-voting') && (
+            <div className="flex justify-start mb-2">
+              <VoteButtons
+                promptId={prompt.id}
+                initialVote={prompt.userVote}
+                initialScore={prompt.score || 0}
+                layout="horizontal"
+                size="sm"
+              />
+            </div>
+          )}
+          {/* Row 2: Title (always wraps, no truncation) */}
+          <div className="w-full mb-2">
+            <CardTitle className="text-lg font-semibold break-words whitespace-normal leading-snug">{prompt.title}</CardTitle>
+          </div>
+        </div>
+        {/* Desktop/tablet layout: original flex row */}
+        <div className="hidden sm:flex gap-4 items-start">
           {isFeatureEnabled('enable-voting') && (
             <div className="flex-shrink-0">
               <VoteButtons
@@ -63,9 +105,6 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
           )}
           <div className="flex-1 min-w-0">
             <CardTitle className="line-clamp-1 leading-tight min-h-[1.5rem]">{prompt.title}</CardTitle>
-            {/* <CardDescription className="line-clamp-2">
-              {prompt.description}
-            </CardDescription> */}
           </div>
         </div>
       </CardHeader>
@@ -149,29 +188,30 @@ export function PromptCard({ prompt, onFavorite, isFavorite }: PromptCardProps) 
             promptId={prompt.id} 
             title={prompt.title}
           />
-          {user && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onFavorite(prompt.id, isFavorite)}
-                    className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
-                  >
-                    {isFavorite ? (
-                      <HeartSolidIcon className="w-5 h-5" />
-                    ) : (
-                      <HeartIcon className="w-5 h-5" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+          {/* Always show the heart icon, and handle login if needed */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleFavoriteClick}
+                  className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
+                  aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                >
+                  {isFavorite ? (
+                    <HeartSolidIcon className="w-5 h-5" />
+                  ) : (
+                    <HeartIcon className="w-5 h-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <LoginDialog open={isLoginDialogOpen} onOpenChange={handleLoginDialogChange} />
         </div>
       </CardFooter>
     </Card>
