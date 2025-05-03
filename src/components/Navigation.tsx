@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { SearchIcon } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -132,8 +133,8 @@ export default function Navigation() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={handleLogin} variant="default">
-                Sign In
+              <Button onClick={handleLogin} variant="default" className="flex items-center gap-2">
+                Login/Register with <FcGoogle className="w-5 h-5" />
               </Button>
             )}
           </div>

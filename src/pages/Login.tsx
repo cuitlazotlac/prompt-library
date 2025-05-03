@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { FcGoogle } from 'react-icons/fc';
 
 export function Login() {
   const navigate = useNavigate();
@@ -26,10 +27,10 @@ export function Login() {
         <CardContent>
           <Button
             onClick={handleGoogleSignIn}
-            className="w-full"
+            className="w-full flex items-center justify-center gap-2"
             variant="outline"
           >
-            Continue with Google
+            Login/Register with <FcGoogle className="w-5 h-5" />
           </Button>
         </CardContent>
       </Card>

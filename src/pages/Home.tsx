@@ -54,6 +54,8 @@ const modelTypes = [
 
 const ITEMS_PER_PAGE = 10;
 
+type SortOption = "newest" | "oldest" | "top" | "bottom";
+
 export function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
@@ -64,26 +66,40 @@ export function Home() {
   ]);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastVisible, setLastVisible] = useState<DocumentData | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: prompts, isLoading } = useQuery({
-    queryKey: ["prompts", currentPage],
+    queryKey: ["prompts", currentPage, sortBy],
     queryFn: async () => {
-      let q = query(
-        collection(db, "prompts"),
-        orderBy("createdAt", "desc"),
-        limit(ITEMS_PER_PAGE)
-      );
+      let q;
+      const promptsRef = collection(db, "prompts");
 
+      // Set up the base query with sorting
+      switch (sortBy) {
+        case "newest":
+          q = query(promptsRef, orderBy("createdAt", "desc"));
+          break;
+        case "oldest":
+          q = query(promptsRef, orderBy("createdAt", "asc"));
+          break;
+        case "top":
+          q = query(promptsRef, orderBy("score", "desc"));
+          break;
+        case "bottom":
+          q = query(promptsRef, orderBy("score", "asc"));
+          break;
+        default:
+          q = query(promptsRef, orderBy("createdAt", "desc"));
+      }
+
+      // Add pagination
       if (currentPage > 1 && lastVisible) {
-        q = query(
-          collection(db, "prompts"),
-          orderBy("createdAt", "desc"),
-          startAfter(lastVisible),
-          limit(ITEMS_PER_PAGE)
-        );
+        q = query(q, startAfter(lastVisible), limit(ITEMS_PER_PAGE));
+      } else {
+        q = query(q, limit(ITEMS_PER_PAGE));
       }
 
       const querySnapshot = await getDocs(q);
@@ -172,6 +188,12 @@ export function Home() {
 
   const handlePrevPage = () => {
     setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value as SortOption);
+    setCurrentPage(1); // Reset to first page when changing sort
+    setLastVisible(null); // Reset pagination cursor
   };
 
   // Get unique categories from prompts
@@ -277,51 +299,67 @@ export function Home() {
           </p>
         </div>
 
-        <div className="mb-8">
-          <div className="flex flex-col gap-6 p-6 rounded-lg border shadow-sm bg-card">
-            <div className="flex gap-2 items-center text-muted-foreground">
-              <FunnelIcon className="w-5 h-5" />
-              <span className="font-medium">Filters</span>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="space-y-2">
+        <div className="flex flex-col gap-4 md:flex-row">
+          <div className="flex flex-wrap gap-4 justify-between items-center w-full">
+            <div className="flex flex-wrap gap-4">
+              <div className="flex gap-2 items-center">
+                <span className="text-sm text-gray-500 whitespace-nowrap">
+                  Sort by:
+                </span>
+                <Select value={sortBy} onValueChange={handleSortChange}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select sort option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="top">Most Upvoted</SelectItem>
+                    <SelectItem value="bottom">Least Upvoted</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2 items-center">
+                <span className="text-sm text-gray-500 whitespace-nowrap">
+                  Categories:
+                </span>
                 <MultiSelect
-                  label="Categories"
+                  options={categories.filter((c) => c !== "All")}
                   value={selectedCategories}
                   onValueChange={handleCategoryChange}
-                  options={categories.filter(c => c !== "All")}
                   allOptionLabel="All"
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="flex gap-2 items-center">
+                <span className="text-sm text-gray-500 whitespace-nowrap">
+                  AI Models:
+                </span>
                 <MultiSelect
-                  label="AI Models"
+                  options={modelTypes.filter((m) => m !== "All AI Models")}
                   value={selectedModels}
-                  onValueChange={handleModelChange}
-                  options={modelTypes.filter(m => m !== "All AI Models")}
+                  onValueChange={setSelectedModels}
                   allOptionLabel="All AI Models"
                 />
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
-                {filteredPrompts.length} prompts found
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handleCategoryChange(["All"]);
-                  handleModelChange(["All AI Models"]);
-                }}
-              >
-                Clear filters
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSortBy("newest");
+                setSelectedCategories(["All"]);
+                setSelectedModels(["All AI Models"]);
+                setSearchQuery("");
+              }}
+              className="h-10"
+            >
+              Clear Filters
+            </Button>
           </div>
+        </div>
+        <br />
+        <div className="text-sm text-gray-500">
+          {filteredPrompts.length} prompts found
         </div>
 
         <div className="grid grid-cols-1 gap-6 mt-8 sm:grid-cols-2">

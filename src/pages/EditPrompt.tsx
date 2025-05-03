@@ -44,6 +44,7 @@ export function EditPrompt() {
   const [newTag, setNewTag] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [images, setImages] = useState<{ url: string; name: string }[]>([]);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   const queryOptions: UseQueryOptions<Prompt, Error> = {
     queryKey: ["prompt", id],
@@ -83,7 +84,7 @@ export function EditPrompt() {
     }
 
     // Check if user has permission to edit this prompt
-    if (prompt && !user.isAdmin && prompt.authorId !== user.uid) {
+    if (prompt && user.role !== 'admin' && prompt.authorId !== user.uid) {
       toast.error("You don't have permission to edit this prompt");
       navigate(`/prompt/${id}`);
       return;
@@ -97,6 +98,7 @@ export function EditPrompt() {
       setSelectedModels(prompt.modelType || []);
       setTags(prompt.tags);
       setImages(prompt.images || []);
+      setIsAnonymous(prompt.authorName === 'Anonymous');
     }
   }, [prompt, user, navigate, id]);
 
@@ -119,7 +121,7 @@ export function EditPrompt() {
     if (!user || !id || !prompt) return;
 
     // Check permissions before submitting
-    if (prompt.authorId !== user.uid && !user.isAdmin) {
+    if (prompt.authorId !== user.uid && user.role !== 'admin') {
       toast.error("You don't have permission to edit this prompt");
       return;
     }
@@ -134,6 +136,7 @@ export function EditPrompt() {
         modelType: selectedModels,
         tags,
         images,
+        authorName: isAnonymous ? 'Anonymous' : (user.displayName || 'Anonymous'),
         updatedAt: new Date(),
       });
 
@@ -184,11 +187,11 @@ export function EditPrompt() {
     );
   }
 
-  if (!prompt || (!user.isAdmin && prompt.authorId !== user.uid)) {
+  if (!prompt || (user.role !== 'admin' && prompt.authorId !== user.uid)) {
     return null;
   }
 
-  const canEdit = user && (prompt.authorId === user.uid || user.isAdmin);
+  const canEdit = user && (prompt.authorId === user.uid || user.role === 'admin');
 
   return (
     <div className="container py-8 max-w-2xl">
@@ -315,6 +318,17 @@ export function EditPrompt() {
             />
           </div>
         )}
+
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="anonymous"
+            checked={isAnonymous}
+            onChange={(e) => setIsAnonymous(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          />
+          <Label htmlFor="anonymous">Post anonymously</Label>
+        </div>
 
         <div className="flex justify-between items-center">
           <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

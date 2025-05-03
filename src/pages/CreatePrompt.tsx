@@ -42,6 +42,7 @@ interface CreatePromptFormData {
   modelType: string[];
   tags: string;
   images: { url: string; name: string }[];
+  isAnonymous: boolean;
 }
 
 export function CreatePrompt() {
@@ -56,6 +57,7 @@ export function CreatePrompt() {
     modelType: [],
     tags: '',
     images: [],
+    isAnonymous: false,
   });
 
   if (!user) {
@@ -78,7 +80,7 @@ export function CreatePrompt() {
         modelType: formData.modelType,
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
         authorId: user.uid,
-        authorName: user.displayName || 'Anonymous',
+        authorName: formData.isAnonymous ? 'Anonymous' : (user.displayName || 'Anonymous'),
         createdAt: new Date(),
         updatedAt: new Date(),
         upvotes: 0,
@@ -222,6 +224,17 @@ export function CreatePrompt() {
             />
           </div>
         )}
+
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="anonymous"
+            checked={formData.isAnonymous}
+            onChange={(e) => setFormData({ ...formData, isAnonymous: e.target.checked })}
+            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          />
+          <Label htmlFor="anonymous">Post anonymously</Label>
+        </div>
 
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Creating...' : 'Create Prompt'}
