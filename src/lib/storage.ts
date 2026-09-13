@@ -21,6 +21,7 @@ export async function uploadFile(
     if (!ALLOWED_TYPES.includes(file.type)) throw new Error('Invalid file type');
     
     // Check Firebase authentication
+    if (!auth || !supabase) throw new Error('Image uploads need Firebase and Supabase environment settings');
     const user = auth.currentUser;
     if (!user) throw new Error('Must be logged in to upload');
 
@@ -73,6 +74,7 @@ export async function uploadFile(
 
 export async function deleteFile(url: string): Promise<void> {
   try {
+    if (!auth || !supabase) throw new Error('Image uploads need Firebase and Supabase environment settings');
     const user = auth.currentUser;
     if (!user) throw new Error('Must be logged in to delete files');
 
@@ -94,4 +96,4 @@ export async function deleteFile(url: string): Promise<void> {
     console.error('Delete error:', error);
     throw new Error(error.message || 'Failed to delete file');
   }
-} 
+}

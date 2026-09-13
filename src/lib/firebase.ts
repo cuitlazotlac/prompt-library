@@ -14,11 +14,19 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
-export const storage = getStorage(app);
-export const analytics = getAnalytics(app);
+// The Recipe home works entirely from local starter data. Keep Firebase
+// optional so contributors can run and review that flow without production
+// credentials; Firebase-backed library features remain unavailable until the
+// usual VITE_FIREBASE_* values are supplied.
+export const firebaseConfigured = Boolean(
+  firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId && firebaseConfig.appId,
+);
 
-export default app; 
+const app = firebaseConfigured ? initializeApp(firebaseConfig) : null;
+export const db = app ? getFirestore(app) : null;
+export const auth = app ? getAuth(app) : null;
+export const googleProvider = app ? new GoogleAuthProvider() : null;
+export const storage = app ? getStorage(app) : null;
+export const analytics = app ? getAnalytics(app) : null;
+
+export default app;

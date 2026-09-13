@@ -6,37 +6,37 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="inline-flex justify-center items-center p-1 h-8 rounded-full bg-secondary">
+    <div className="inline-flex items-center rounded-full bg-secondary p-1" aria-label="Color theme">
       <button
         onClick={() => setTheme('light')}
         className={cn(
-          'inline-flex items-center justify-center rounded-full px-2.5 py-1.5 transition-colors',
-          theme === 'light' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+          'inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium transition-colors',
+          theme === 'light' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
         )}
       >
         <SunIcon className="w-4 h-4" />
-        <span className="sr-only">Light</span>
+        <span className="hidden sm:inline">Light</span><span className="sm:hidden sr-only">Light</span>
       </button>
       <button
         onClick={() => setTheme('dark')}
         className={cn(
-          'inline-flex items-center justify-center rounded-full px-2.5 py-1.5 transition-colors',
-          theme === 'dark' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+          'inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium transition-colors',
+          theme === 'dark' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
         )}
       >
         <MoonIcon className="w-4 h-4" />
-        <span className="sr-only">Dark</span>
+        <span className="hidden sm:inline">Dark</span><span className="sm:hidden sr-only">Dark</span>
       </button>
       <button
         onClick={() => setTheme('system')}
         className={cn(
-          'inline-flex items-center justify-center rounded-full px-2.5 py-1.5 transition-colors',
-          theme === 'system' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+          'inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium transition-colors',
+          theme === 'system' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
         )}
       >
         <ComputerDesktopIcon className="w-4 h-4" />
-        <span className="sr-only">System</span>
+        <span className="hidden sm:inline">System</span><span className="sm:hidden sr-only">System</span>
       </button>
     </div>
   );
-} 
+}

@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { Home } from '@/pages/Home';
+import { RecipeFlow } from '@/pages/RecipeFlow';
 import { CreatePrompt } from '@/pages/CreatePrompt';
 import { EditPrompt } from '@/pages/EditPrompt';
 import { Profile } from '@/pages/Profile';
@@ -11,7 +12,7 @@ import Admin from '@/pages/Admin';
 import Navigation from '@/components/Navigation';
 import PromptDetail from '@/pages/PromptDetail';
 import { Footer } from '@/components/Footer';
-import posthog from '@/lib/posthog';
+import posthog, { posthogConfigured } from '@/lib/posthog';
 import { useEffect } from 'react';
 import '@/styles/themes.css';
 
@@ -31,7 +32,7 @@ function App() {
   useEffect(() => {
     // Capture page views when the route changes
     const handleRouteChange = () => {
-      posthog.capture('$pageview')
+      if (posthogConfigured) posthog.capture('$pageview')
     }
 
     window.addEventListener('popstate', handleRouteChange)
@@ -47,11 +48,12 @@ function App() {
         <AuthProvider>
           <ThemeProvider>
             <Router>
-              <div className="flex flex-col min-h-screen pb-14">
+              <div className="flex flex-col min-h-screen">
                 <Navigation />
                 <main className="flex-1">
                   <Routes>
-                    <Route path="/" element={<Home />} />
+                    <Route path="/" element={<RecipeFlow />} />
+                    <Route path="/library" element={<Home />} />
                     <Route path="/prompt/:id" element={<PromptDetail />} />
                     <Route path="/create" element={<CreatePrompt />} />
                     <Route 
@@ -77,4 +79,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

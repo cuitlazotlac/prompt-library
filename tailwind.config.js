@@ -17,7 +17,7 @@ module.exports = {
     },
     extend: {
       fontFamily: {
-        sans: ['Albert Sans', 'system-ui', 'sans-serif'],
+        sans: ['Pinterest Sans', 'Poppins', 'system-ui', 'sans-serif'],
         mono: ['Berkeley Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
@@ -77,4 +77,4 @@ module.exports = {
     },
   },
   plugins: [require("tailwindcss-animate")],
-} 
+}

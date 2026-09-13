@@ -1,11 +1,8 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PlusIcon } from "@heroicons/react/24/outline";
-import { SearchIcon } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import {
   DropdownMenu,
@@ -15,15 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { SearchModal } from "@/components/SearchModal";
 
 export default function Navigation() {
   const { user, logout, signInWithGoogle } = useAuth();
-  const { setTheme } = useTheme();
   const navigate = useNavigate();
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const handleLogout = async () => {
     try {
@@ -44,43 +36,24 @@ export default function Navigation() {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex items-center h-14">
+      <nav className="sticky top-0 z-50 w-full border-b bg-background/90 backdrop-blur">
+        <div className="container flex h-16 items-center px-4">
           {/* Left section with logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center mr-6 space-x-2">
-              <img src="/logo-nav.svg" alt="Logo" className="w-8 h-8" />
+            <Link to="/" className="flex items-center gap-2.5">
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-base font-bold text-primary-foreground">P</span>
+              <span className="hidden text-base font-semibold sm:inline">Prompt Lab</span>
             </Link>
           </div>
 
-          {/* Center section with search */}
-          <div className="flex flex-1 justify-center mx-auto max-w-xl">
-            {/* Desktop search bar */}
-            <div className="hidden md:block relative w-full">
-              <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search prompts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onClick={() => setIsSearchOpen(true)}
-                className="pl-8 w-full h-9 cursor-pointer"
-                readOnly // Make it clear this is a button to open the modal
-              />
-            </div>
-            {/* Mobile search icon */}
-            <Button
-              variant="outline"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setIsSearchOpen(true)}
-              aria-label="Open search"
-            >
-              <SearchIcon className="h-5 w-5" />
-            </Button>
+          {/* Center section with navigation */}
+          <div className="flex flex-1 justify-center px-3">
+            <Link to="/library" className="hidden text-sm font-medium text-muted-foreground transition hover:text-foreground sm:inline">Browse recipes</Link>
           </div>
 
           {/* Right section */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             {user && (
               <Button
                 onClick={() => navigate("/create")}
@@ -144,18 +117,14 @@ export default function Navigation() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={handleLogin} variant="default" className="flex items-center gap-2">
-                Login/Register with <FcGoogle className="w-5 h-5" />
+              <Button onClick={handleLogin} variant="default" className="hidden gap-2 rounded-full sm:flex">
+                Sign in <FcGoogle className="w-4 h-4" />
               </Button>
             )}
           </div>
         </div>
       </nav>
 
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-      />
     </>
   );
 }
