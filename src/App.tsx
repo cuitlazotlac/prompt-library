@@ -5,6 +5,8 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { Home } from '@/pages/Home';
 import { RecipeFlow } from '@/pages/RecipeFlow';
+import { MyRecipes } from '@/pages/MyRecipes';
+import { RecipeDetail } from '@/pages/RecipeDetail';
 import { CreatePrompt } from '@/pages/CreatePrompt';
 import { EditPrompt } from '@/pages/EditPrompt';
 import { Profile } from '@/pages/Profile';
@@ -53,7 +55,9 @@ function App() {
                 <main className="flex-1">
                   <Routes>
                     <Route path="/" element={<RecipeFlow />} />
-                    <Route path="/library" element={<Home />} />
+                    <Route path="/library" element={<MyRecipes />} />
+                    <Route path="/legacy-library" element={<Home />} />
+                    <Route path="/recipe/:id" element={<RecipeDetail />} />
                     <Route path="/prompt/:id" element={<PromptDetail />} />
                     <Route path="/create" element={<CreatePrompt />} />
                     <Route 

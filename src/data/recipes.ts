@@ -8,6 +8,7 @@ export const starterRecipes: Recipe[] = [
     name: "Write an email to your landlord",
     description: "Handle a difficult housing issue clearly and respectfully.",
     category: "Home",
+    projectId: "home",
     tags: ["email", "housing", "communication"],
     keywords: ["landlord", "rent", "apartment", "lease", "maintenance", "tenant", "difficult email"],
     questions: [
@@ -26,6 +27,7 @@ export const starterRecipes: Recipe[] = [
     name: "Write a job application email",
     description: "Create a concise, tailored email for a role you want.",
     category: "Work",
+    projectId: "work",
     tags: ["email", "job", "career"],
     keywords: ["job", "application", "cover letter", "hiring", "career", "resume"],
     questions: [
@@ -44,6 +46,7 @@ export const starterRecipes: Recipe[] = [
     name: "Make a realistic weekly plan",
     description: "Turn a busy week into a calm, practical plan.",
     category: "Planning",
+    projectId: "personal",
     tags: ["planning", "productivity", "routine"],
     keywords: ["plan", "week", "schedule", "organize", "routine", "priorities", "productive"],
     questions: [

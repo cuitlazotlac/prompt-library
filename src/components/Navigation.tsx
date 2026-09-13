@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { FcGoogle } from "react-icons/fc";
 import {
@@ -53,7 +52,6 @@ export default function Navigation() {
 
           {/* Right section */}
           <div className="flex items-center gap-2">
-            <ThemeToggle />
             {user && (
               <Button
                 onClick={() => navigate("/create")}

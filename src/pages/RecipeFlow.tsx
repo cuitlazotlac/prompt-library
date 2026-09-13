@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Check, Copy, ExternalLink, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import { starterRecipes } from "@/data/recipes";
@@ -7,8 +8,11 @@ import { promptGenerator, RecipeAnswers } from "@/lib/promptGenerator";
 import { Recipe } from "@/types/recipe";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GuidedQuestionFlow } from "@/components/GuidedQuestionFlow";
+import { getRecipes } from "@/lib/recipeLibrary";
+import { getProjects, saveRecipes } from "@/lib/recipeLibrary";
 
 type Step = "request" | "questions" | "result" | "no-match";
 
@@ -22,12 +26,17 @@ const inspirations = [
 ];
 
 export function RecipeFlow() {
-  const [step, setStep] = useState<Step>("request");
+  const [searchParams] = useSearchParams();
+  const requestedRecipe = getRecipes().find((item) => item.id === searchParams.get("recipe"));
+  const [step, setStep] = useState<Step>(requestedRecipe ? "questions" : "request");
   const [request, setRequest] = useState("");
-  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [recipe, setRecipe] = useState<Recipe | null>(requestedRecipe ?? null);
   const [answers, setAnswers] = useState<RecipeAnswers>({});
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [copied, setCopied] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saveName, setSaveName] = useState(requestedRecipe?.name ?? "");
+  const [saveProjectId, setSaveProjectId] = useState(requestedRecipe?.projectId ?? "personal");
 
   const findRecipe = (event: FormEvent) => {
     event.preventDefault();
@@ -38,6 +47,8 @@ export function RecipeFlow() {
     }
     setRecipe(match.recipe);
     setAnswers({});
+    setSaveName(match.recipe.name);
+    setSaveProjectId(match.recipe.projectId);
     setStep("questions");
   };
 
@@ -67,7 +78,18 @@ export function RecipeFlow() {
     setAnswers({});
     setGeneratedPrompt("");
     setCopied(false);
+    setSaveOpen(false);
     setStep("request");
+  };
+
+  const saveRecipe = () => {
+    if (!recipe || !saveName.trim()) return;
+    const savedRecipe = { ...recipe, name: saveName.trim(), projectId: saveProjectId, updatedAt: new Date().toISOString() };
+    const recipes = getRecipes();
+    saveRecipes(recipes.some((item) => item.id === recipe.id) ? recipes.map((item) => item.id === recipe.id ? savedRecipe : item) : [...recipes, savedRecipe]);
+    setRecipe(savedRecipe);
+    setSaveOpen(false);
+    toast.success("Recipe saved");
   };
 
   return (
@@ -110,8 +132,8 @@ export function RecipeFlow() {
             </div>
             <div className="mt-12 border-t pt-8">
               <h2 className="font-medium">Want to save this for next time?</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Saving personal Recipes will be added with the library slice.</p>
-              <Button onClick={() => toast("Save Recipe is the next step in this V1 rollout.")} variant="ghost" className="mt-2 px-0">Save Recipe</Button>
+              {!saveOpen && <Button onClick={() => setSaveOpen(true)} variant="ghost" className="mt-2 px-0">Save Recipe</Button>}
+              {saveOpen && <div className="mt-4 space-y-4 rounded-2xl border bg-card p-4"><div><Label htmlFor="save-name">Name</Label><Input id="save-name" value={saveName} onChange={(event) => setSaveName(event.target.value)} className="mt-2" /></div><div><Label htmlFor="save-project">Project</Label><select id="save-project" value={saveProjectId} onChange={(event) => setSaveProjectId(event.target.value)} className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">{getProjects().map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div><div className="flex gap-2"><Button onClick={saveRecipe} className="rounded-full">Save Recipe</Button><Button onClick={() => setSaveOpen(false)} variant="ghost" className="rounded-full">Cancel</Button></div></div>}
             </div>
             <button onClick={restart} className="mt-8 text-sm text-muted-foreground hover:text-foreground">Start another recipe</button>
           </section>

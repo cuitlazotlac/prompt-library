@@ -1,4 +1,5 @@
 import { MailIcon } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export function Footer() {
   return (
@@ -28,7 +29,7 @@ export function Footer() {
             </a>
           </div>
         </div>
-        <span className="text-xs text-muted-foreground">Make useful things reusable.</span>
+        <ThemeToggle />
       </div>
     </footer>
   );

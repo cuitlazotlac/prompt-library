@@ -16,7 +16,7 @@ export interface Recipe {
   name: string;
   description: string;
   category: string;
-  projectId?: string;
+  projectId: string;
   tags: string[];
   keywords: string[];
   questions: RecipeQuestion[];
