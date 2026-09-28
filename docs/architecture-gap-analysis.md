@@ -36,3 +36,7 @@ The existing product is a public prompt library: the home page reads and filters
 - Matching uses weighted keyword overlap with a configurable threshold. It is transparent and easy to replace, but needs editorial metadata and tuning as the catalog grows.
 - `Save Recipe` deliberately requests sign-in only after generation; persistence is not implemented in this first slice.
 - Firebase environment values are required for legacy Firebase-backed pages. The Recipe home itself does not read Firestore.
+
+## Universal Recipe engine update
+
+Request resolution now follows `understandIntent → deterministic match or RecipeBuilder → GuidedQuestionFlow → DeterministicPromptGenerator`. The internal `TaskDefinition` records the inferred goal, output, audience, constraints, success criteria, known information, and missing information. Existing Recipes remain an optimization; a valid request always receives a structured Recipe. The current `deterministicRecipeBuilder` is intentionally replaceable by a future structured AI provider and asks only task-relevant missing questions, without adding an AI dependency to the $0 MVP.

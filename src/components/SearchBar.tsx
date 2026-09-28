@@ -84,7 +84,7 @@ export function SearchBar({ searchQuery, onSearchChange }: SearchBarProps) {
               {filteredPrompts?.map((prompt) => (
                 <button
                   key={prompt.id}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-black focus:bg-accent focus:text-black"
                   onClick={() => handleSelect(prompt.id)}
                 >
                   <div className="font-medium">{prompt.title}</div>
@@ -99,4 +99,4 @@ export function SearchBar({ searchQuery, onSearchChange }: SearchBarProps) {
       </PopoverContent>
     </Popover>
   );
-} 
+}

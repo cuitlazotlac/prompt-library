@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface GuidedQuestionFlowProps {
   recipe: Recipe;
@@ -70,10 +71,10 @@ export function GuidedQuestionFlow({ recipe, answers, onAnswersChange, onComplet
           {question.type === "select" && (
             <div className="space-y-2">
               <Label htmlFor={question.id} className="sr-only">{question.label}</Label>
-              <select id={question.id} value={value} onChange={(event) => updateAnswer(event.target.value)} aria-invalid={Boolean(validationMessage)} aria-describedby={validationMessage ? `${question.id}-error` : undefined} className="h-14 w-full rounded-2xl border border-input bg-background px-4 text-base focus:outline-none focus:ring-2 focus:ring-ring" autoFocus>
-                <option value="">Choose an option</option>
-                {question.options?.map((option) => <option key={option} value={option}>{option}</option>)}
-              </select>
+              <Select value={value || undefined} onValueChange={updateAnswer}>
+                <SelectTrigger id={question.id} aria-invalid={Boolean(validationMessage)} className="h-14 rounded-2xl px-4 text-base"><SelectValue placeholder="Choose an option" /></SelectTrigger>
+                <SelectContent><SelectItem value="__empty" disabled>Choose an option</SelectItem>{question.options?.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
           )}
           {question.type === "radio" && (

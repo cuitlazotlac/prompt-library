@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { starterRecipes } from "@/data/recipes";
 import { promptGenerator } from "@/lib/promptGenerator";
 import { findBestRecipe } from "@/lib/recipeMatcher";
+import { buildFallbackRecipe, understandIntent, validateRecipeSpec } from "@/lib/recipeBuilder";
 
 describe("Recipe matching", () => {
   it("finds the landlord recipe from a natural-language request", () => {
@@ -10,6 +11,46 @@ describe("Recipe matching", () => {
 
   it("returns no match when the catalog has no relevant Recipe", () => {
     expect(findBestRecipe("Help me plan a wedding menu", starterRecipes)).toBeNull();
+  });
+});
+
+describe("Universal Recipe builder", () => {
+  it("builds a structured fallback Recipe for an unmatched request", () => {
+    const recipe = buildFallbackRecipe("Prepare a presentation for my community group");
+    expect(recipe.questions.length).toBeGreaterThanOrEqual(1);
+    expect(recipe.questions.length).toBeLessThanOrEqual(5);
+    expect(recipe.promptTemplate).toContain("Prepare a presentation for my community group");
+    expect(recipe.questions.every((question) => question.recipeId === recipe.id)).toBe(true);
+  });
+
+  it("rejects malformed Recipe specifications", () => {
+    expect(validateRecipeSpec({ name: "", description: "", questions: [], promptTemplate: "" })).toBe(false);
+  });
+
+  it("extracts known audience and constraints before designing questions", () => {
+    const task = understandIntent("Tell my boss I need to work from home tomorrow because my son is sick");
+    expect(task.taskType).toBe("communication");
+    expect(task.audience).toBe("boss");
+    expect(task.constraints).toContain("tomorrow");
+    expect(task.knownInformation.join(" ")).toContain("my son is sick");
+  });
+
+  it("creates task-specific travel questions instead of generic context questions", () => {
+    const recipe = buildFallbackRecipe("Plan a 5-day trip to Rome with my girlfriend; we love food and history");
+    expect(recipe.questions.map((question) => question.label).join(" ")).toMatch(/budget|dates|pace/i);
+  });
+
+  it.each([
+    "Write an email to my landlord about a rent increase",
+    "Help me organize my move",
+    "Compare these two job offers",
+    "Make me a packing list for a two-week trip",
+    "Help me apologize to a friend",
+  ])("creates a usable Recipe for %s", (request) => {
+    const recipe = buildFallbackRecipe(request);
+    expect(recipe.promptTemplate).toContain(request);
+    expect(recipe.questions.length).toBeGreaterThanOrEqual(1);
+    expect(recipe.questions.length).toBeLessThanOrEqual(5);
   });
 });
 

@@ -40,14 +40,14 @@ export default function Navigation() {
           {/* Left section with logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2.5">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-base font-bold text-primary-foreground">P</span>
+              <img src="/logo-nav.svg" alt="Prompt Lab" className="h-9 w-9 rounded-xl" />
               <span className="hidden text-base font-semibold sm:inline">Prompt Lab</span>
             </Link>
+            <Link to="/library" className="ml-5 text-sm font-medium text-muted-foreground transition hover:text-foreground">Browse recipes</Link>
           </div>
 
           {/* Center section with navigation */}
           <div className="flex flex-1 justify-center px-3">
-            <Link to="/library" className="hidden text-sm font-medium text-muted-foreground transition hover:text-foreground sm:inline">Browse recipes</Link>
           </div>
 
           {/* Right section */}
@@ -115,8 +115,8 @@ export default function Navigation() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={handleLogin} variant="default" className="hidden gap-2 rounded-full sm:flex">
-                Sign in <FcGoogle className="w-4 h-4" />
+              <Button onClick={handleLogin} variant="default" className="flex gap-2 rounded-full">
+                Sign in with <FcGoogle className="w-4 h-4" />
               </Button>
             )}
           </div>

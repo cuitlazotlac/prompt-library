@@ -89,7 +89,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               {filteredPrompts?.map((prompt) => (
                 <button
                   key={prompt.id}
-                  className="w-full px-4 py-3 text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground outline-none"
+                  className="w-full px-4 py-3 text-left hover:bg-accent hover:text-black focus:bg-accent focus:text-black outline-none"
                   onClick={() => handleSelect(prompt.id)}
                 >
                   <div className="flex flex-col gap-1">
@@ -131,4 +131,4 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
       </DialogContent>
     </Dialog>
   );
-} 
+}

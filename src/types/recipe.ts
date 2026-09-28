@@ -25,4 +25,8 @@ export interface Recipe {
   visibility: "public" | "private";
   createdAt: string;
   updatedAt: string;
+  lastUsedAt?: string;
+  lastVisitedAt?: string;
+  authorName?: string;
+  isAnonymous?: boolean;
 }

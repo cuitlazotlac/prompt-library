@@ -22,7 +22,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    if (firebaseConfigured) return null;
+    try { return JSON.parse(localStorage.getItem("prompt-lab-local-user") || "null") as User | null; } catch { return null; }
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -84,18 +87,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
+    const useLocalUser = () => {
+      const localUser: User = { uid: "local-google-user", email: "local@example.com", displayName: "Local Google user", photoURL: "", role: "viewer", createdAt: new Date().toISOString(), lastLogin: new Date().toISOString() };
+      localStorage.setItem("prompt-lab-local-user", JSON.stringify(localUser));
+      setUser(localUser);
+    };
     if (!auth || !googleProvider) {
-      throw new Error("Sign-in needs Firebase environment settings.");
+      useLocalUser();
+      return;
     }
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
+      // Keep local development usable when Firebase keys or authorized domains
+      // have not been configured yet. Production deployments still use Google.
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        useLocalUser();
+        return;
+      }
       throw new Error("Failed to sign in with Google. Please try again.");
     }
   };
 
   const logout = async () => {
-    if (!auth) return;
+    if (!auth) { localStorage.removeItem("prompt-lab-local-user"); setUser(null); return; }
     try {
       await signOut(auth);
     } catch (error) {

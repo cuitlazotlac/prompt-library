@@ -10,11 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GuidedQuestionFlow } from "@/components/GuidedQuestionFlow";
 import { getRecipes } from "@/lib/recipeLibrary";
-import { getProjects, saveRecipes } from "@/lib/recipeLibrary";
+import { getPrompts, getProjects, savePrompt, saveRecipes } from "@/lib/recipeLibrary";
+import { deterministicRecipeBuilder, understandIntent } from "@/lib/recipeBuilder";
+import { useAuth } from "@/contexts/AuthContext";
 
-type Step = "request" | "questions" | "result" | "no-match";
+type Step = "request" | "questions" | "result";
 
 const inspirations = [
   "Write a difficult email to my landlord",
@@ -27,28 +30,35 @@ const inspirations = [
 
 export function RecipeFlow() {
   const [searchParams] = useSearchParams();
+  const { user, signInWithGoogle } = useAuth();
   const requestedRecipe = getRecipes().find((item) => item.id === searchParams.get("recipe"));
+  const requestedPrompt = requestedRecipe ? getPrompts().find((item) => item.recipeId === requestedRecipe.id) : undefined;
   const [step, setStep] = useState<Step>(requestedRecipe ? "questions" : "request");
   const [request, setRequest] = useState("");
   const [recipe, setRecipe] = useState<Recipe | null>(requestedRecipe ?? null);
-  const [answers, setAnswers] = useState<RecipeAnswers>({});
+  const [answers, setAnswers] = useState<RecipeAnswers>(searchParams.get("edit") === "1" ? requestedPrompt?.answers ?? {} : {});
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [copied, setCopied] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState(requestedRecipe?.name ?? "");
   const [saveProjectId, setSaveProjectId] = useState(requestedRecipe?.projectId ?? "personal");
+  const [saveVisibility, setSaveVisibility] = useState<"private" | "public">(requestedRecipe?.visibility ?? "private");
+  const [saveAnonymous, setSaveAnonymous] = useState(requestedRecipe?.isAnonymous ?? false);
+  const [savedRecipeId, setSavedRecipeId] = useState<string | null>(null);
 
   const findRecipe = (event: FormEvent) => {
     event.preventDefault();
     const match = findBestRecipe(request, starterRecipes);
-    if (!match) {
-      setStep("no-match");
-      return;
-    }
-    setRecipe(match.recipe);
+    const task = understandIntent(request);
+    const hasConcreteContext = request.trim().split(/\s+/).length >= 6 || task.constraints.length > 0;
+    const nextRecipe = match && !hasConcreteContext ? match.recipe : deterministicRecipeBuilder.build(request);
+    setRecipe(nextRecipe);
     setAnswers({});
-    setSaveName(match.recipe.name);
-    setSaveProjectId(match.recipe.projectId);
+    setSaveName(nextRecipe.name);
+    setSaveProjectId(nextRecipe.projectId);
+    setSaveVisibility(nextRecipe.visibility);
+    setSaveAnonymous(nextRecipe.isAnonymous ?? false);
+    setSavedRecipeId(null);
     setStep("questions");
   };
 
@@ -82,12 +92,19 @@ export function RecipeFlow() {
     setStep("request");
   };
 
-  const saveRecipe = () => {
+  const saveRecipe = async () => {
     if (!recipe || !saveName.trim()) return;
-    const savedRecipe = { ...recipe, name: saveName.trim(), projectId: saveProjectId, updatedAt: new Date().toISOString() };
+    if (!user) {
+      await signInWithGoogle();
+      toast.success("You’re signed in locally. Press Save Recipe again to continue.");
+      return;
+    }
+    const savedRecipe = { ...recipe, name: saveName.trim(), projectId: saveProjectId, visibility: saveVisibility, authorId: user?.uid ?? recipe.authorId, isAnonymous: saveAnonymous, authorName: saveAnonymous ? "Anonymous" : recipe.authorName, updatedAt: new Date().toISOString() };
     const recipes = getRecipes();
     saveRecipes(recipes.some((item) => item.id === recipe.id) ? recipes.map((item) => item.id === recipe.id ? savedRecipe : item) : [...recipes, savedRecipe]);
     setRecipe(savedRecipe);
+    savePrompt(savedRecipe.id, generatedPrompt, answers);
+    setSavedRecipeId(savedRecipe.id);
     setSaveOpen(false);
     toast.success("Recipe saved");
   };
@@ -97,8 +114,8 @@ export function RecipeFlow() {
       <div className="container max-w-3xl px-4 py-16 sm:py-28">
         {step === "request" && (
           <section className="mx-auto max-w-2xl text-center">
-            <p className="mb-6 inline-flex rounded-full bg-secondary px-4 py-2 text-sm font-medium text-muted-foreground">A simple place to reuse what works</p>
             <h1 className="text-4xl font-semibold leading-[1.08] tracking-tight sm:text-6xl">What do you want ChatGPT to help you with?</h1>
+            <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-muted-foreground">Tell us what you want to achieve. We’ll ask a few questions, build the right prompt, and save it as a reusable Recipe.</p>
             <form onSubmit={findRecipe} className="mt-10 text-left">
               <Label htmlFor="request" className="mb-2 block text-sm font-medium">Describe what you need</Label>
               <div className="rounded-[1.5rem] border border-border bg-card p-1 shadow-[0_2px_12px_rgba(0,0,0,0.06)] transition focus-within:border-primary focus-within:shadow-[0_0_0_4px_hsl(var(--primary)/0.16)] dark:shadow-none">
@@ -111,7 +128,7 @@ export function RecipeFlow() {
             <div className="mt-10 text-left">
               <p className="mb-3 text-center text-sm text-muted-foreground">Need an idea? Try one of these.</p>
               <div className="flex flex-wrap justify-center gap-2 text-sm">
-                {inspirations.map((inspiration) => <button key={inspiration} type="button" onClick={() => setRequest(inspiration)} className="rounded-full bg-secondary px-4 py-2 text-muted-foreground transition hover:bg-accent hover:text-foreground">{inspiration}</button>)}
+                {inspirations.map((inspiration) => <button key={inspiration} type="button" onClick={() => setRequest(inspiration)} className="rounded-full bg-secondary px-4 py-2 text-muted-foreground transition hover:bg-accent hover:text-black">{inspiration}</button>)}
               </div>
             </div>
           </section>
@@ -132,21 +149,13 @@ export function RecipeFlow() {
             </div>
             <div className="mt-12 border-t pt-8">
               <h2 className="font-medium">Want to save this for next time?</h2>
-              {!saveOpen && <Button onClick={() => setSaveOpen(true)} variant="ghost" className="mt-2 px-0">Save Recipe</Button>}
-              {saveOpen && <div className="mt-4 space-y-4 rounded-2xl border bg-card p-4"><div><Label htmlFor="save-name">Name</Label><Input id="save-name" value={saveName} onChange={(event) => setSaveName(event.target.value)} className="mt-2" /></div><div><Label htmlFor="save-project">Project</Label><select id="save-project" value={saveProjectId} onChange={(event) => setSaveProjectId(event.target.value)} className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">{getProjects().map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div><div className="flex gap-2"><Button onClick={saveRecipe} className="rounded-full">Save Recipe</Button><Button onClick={() => setSaveOpen(false)} variant="ghost" className="rounded-full">Cancel</Button></div></div>}
+              {!saveOpen && <Button onClick={() => setSaveOpen(true)} variant="secondary" className="mt-3 rounded-lg px-5 py-2.5 font-semibold">Save Recipe</Button>}
+              {saveOpen && <div className="mt-4 space-y-4 rounded-2xl border bg-card p-4"><div><Label htmlFor="save-name">Name</Label><Input id="save-name" value={saveName} onChange={(event) => setSaveName(event.target.value)} className="mt-2" /></div><div><Label>Folder</Label><Select value={saveProjectId} onValueChange={setSaveProjectId}><SelectTrigger className="mt-2"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="personal">Personal recipes</SelectItem>{getProjects().map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}</SelectContent></Select></div><div><Label>Who can see it?</Label><Select value={saveVisibility} onValueChange={(value) => { const visibility = value as "private" | "public"; setSaveVisibility(visibility); if (visibility === "private") setSaveAnonymous(false); }}><SelectTrigger className="mt-2"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="private">Personal recipes</SelectItem><SelectItem value="public">Public recipes</SelectItem></SelectContent></Select></div>{saveVisibility === "public" && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={saveAnonymous} onChange={(event) => setSaveAnonymous(event.target.checked)} className="h-4 w-4 accent-primary" />Show me as Anonymous</label>}<div className="flex flex-wrap gap-2"><Button onClick={saveRecipe} className="rounded-lg bg-zinc-800 px-5 py-2.5 text-white hover:bg-zinc-700 hover:text-white">Save Recipe</Button><Button onClick={() => setSaveOpen(false)} variant="ghost" className="rounded-lg">Cancel</Button></div></div>}
+              {savedRecipeId && <Button onClick={() => window.location.assign(`/recipe/${savedRecipeId}`)} variant="outline" className="mt-3 rounded-lg">View saved recipe</Button>}
             </div>
-            <button onClick={restart} className="mt-8 text-sm text-muted-foreground hover:text-foreground">Start another recipe</button>
           </section>
         )}
 
-        {step === "no-match" && (
-          <section className="mx-auto max-w-xl text-center">
-            <h1 className="text-3xl font-semibold tracking-tight">We don’t have a recipe for that yet</h1>
-            <p className="mt-4 text-muted-foreground">Try one of the starter recipes while we add more ways to help.</p>
-            <div className="mt-8 grid gap-3 text-left">{starterRecipes.map((item) => <button key={item.id} onClick={() => { setRecipe(item); setAnswers({}); setStep("questions"); }} className="rounded-lg border p-4 text-left transition hover:bg-accent"><span className="font-medium">{item.name}</span><span className="mt-1 block text-sm text-muted-foreground">{item.description}</span></button>)}</div>
-            <Button onClick={restart} variant="outline" className="mt-8">Try another request</Button>
-          </section>
-        )}
       </div>
     </div>
   );
