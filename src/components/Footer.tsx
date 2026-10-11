@@ -1,10 +1,11 @@
 import { MailIcon } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Link } from 'react-router-dom';
 
 export function Footer() {
   return (
     <footer className="border-t bg-background">
-      <div className="container flex min-h-16 items-center justify-between px-4">
+      <div className="container flex min-h-16 flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-4 items-center">
           <div className="flex gap-2 items-center">
             <img src="/sarcina-favicon.svg" alt="Prompt Lab Logo" className="w-6 h-6" />
@@ -29,7 +30,7 @@ export function Footer() {
             </a>
           </div>
         </div>
-        <ThemeToggle />
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3"><nav className="flex items-center gap-4 text-xs text-muted-foreground" aria-label="Company"><Link to="/about" className="transition-colors hover:text-foreground">About</Link><Link to="/terms-of-service" className="transition-colors hover:text-foreground">Terms of Service</Link><Link to="/terms-of-use" className="transition-colors hover:text-foreground">Terms of Use</Link></nav><ThemeToggle /></div>
       </div>
     </footer>
   );

@@ -13,6 +13,7 @@ import { Profile } from '@/pages/Profile';
 import Admin from '@/pages/Admin';
 import Navigation from '@/components/Navigation';
 import PromptDetail from '@/pages/PromptDetail';
+import { About, TermsOfService, TermsOfUse } from '@/pages/CompanyPages';
 import { Footer } from '@/components/Footer';
 import posthog, { posthogConfigured } from '@/lib/posthog';
 import { useEffect } from 'react';
@@ -70,6 +71,9 @@ function App() {
                     />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/admin" element={<Admin />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/terms-of-service" element={<TermsOfService />} />
+                    <Route path="/terms-of-use" element={<TermsOfUse />} />
                   </Routes>
                 </main>
               </div>
