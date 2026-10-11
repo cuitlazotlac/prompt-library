@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Check, Copy, ExternalLink, Search } from "lucide-react";
 import toast from "react-hot-toast";
@@ -28,6 +28,14 @@ const inspirations = [
   "Turn my messy notes into a clear plan",
 ];
 
+const placeholderExamples = [
+  "Write a kind message to reschedule a meeting",
+  "Plan a simple dinner for a busy week",
+  "Explain a complicated idea in plain language",
+  "Prepare questions for an important conversation",
+  "Turn my notes into a clear project plan",
+];
+
 export function RecipeFlow() {
   const [searchParams] = useSearchParams();
   const { user, signInWithGoogle } = useAuth();
@@ -35,6 +43,7 @@ export function RecipeFlow() {
   const requestedPrompt = requestedRecipe ? getPrompts().find((item) => item.recipeId === requestedRecipe.id) : undefined;
   const [step, setStep] = useState<Step>(requestedRecipe ? "questions" : "request");
   const [request, setRequest] = useState("");
+  const [placeholderExample, setPlaceholderExample] = useState(placeholderExamples[0]);
   const [recipe, setRecipe] = useState<Recipe | null>(requestedRecipe ?? null);
   const [answers, setAnswers] = useState<RecipeAnswers>(searchParams.get("edit") === "1" ? requestedPrompt?.answers ?? {} : {});
   const [generatedPrompt, setGeneratedPrompt] = useState("");
@@ -45,6 +54,37 @@ export function RecipeFlow() {
   const [saveVisibility, setSaveVisibility] = useState<"private" | "public">(requestedRecipe?.visibility ?? "private");
   const [saveAnonymous, setSaveAnonymous] = useState(requestedRecipe?.isAnonymous ?? false);
   const [savedRecipeId, setSavedRecipeId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let exampleIndex = 0;
+    let characterIndex = 0;
+    let deleting = false;
+    let timeoutId: number;
+
+    const tick = () => {
+      const example = placeholderExamples[exampleIndex];
+      if (!deleting) {
+        characterIndex = Math.min(characterIndex + 1, example.length);
+        setPlaceholderExample(example.slice(0, characterIndex));
+        if (characterIndex === example.length) {
+          deleting = true;
+          timeoutId = window.setTimeout(tick, 1800);
+          return;
+        }
+      } else {
+        characterIndex = Math.max(characterIndex - 1, 0);
+        setPlaceholderExample(example.slice(0, characterIndex));
+        if (characterIndex === 0) {
+          deleting = false;
+          exampleIndex = (exampleIndex + 1) % placeholderExamples.length;
+        }
+      }
+      timeoutId = window.setTimeout(tick, deleting ? 28 : 48);
+    };
+
+    timeoutId = window.setTimeout(tick, 900);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const findRecipe = (event: FormEvent) => {
     event.preventDefault();
@@ -119,7 +159,7 @@ export function RecipeFlow() {
             <form onSubmit={findRecipe} className="mt-10 text-left">
               <Label htmlFor="request" className="mb-2 block text-sm font-medium">Describe what you need</Label>
               <div className="rounded-[1.5rem] border border-border bg-card p-1 shadow-[0_2px_12px_rgba(0,0,0,0.06)] transition focus-within:border-primary focus-within:shadow-[0_0_0_4px_hsl(var(--primary)/0.16)] dark:shadow-none">
-                <Textarea id="request" value={request} onChange={(event) => setRequest(event.target.value)} required placeholder="For example: Write a difficult email to my landlord" className="min-h-36 resize-none border-0 bg-transparent px-5 py-4 text-base leading-6 shadow-none placeholder:text-muted-foreground/70 focus-visible:ring-0" />
+                <Textarea id="request" value={request} onChange={(event) => setRequest(event.target.value)} required placeholder={`For example: ${placeholderExample}`} className="min-h-36 resize-none border-0 bg-transparent px-5 py-4 text-base leading-6 shadow-none placeholder:text-muted-foreground/70 focus-visible:ring-0" />
               </div>
               <div className="mt-4 flex justify-end">
                 <Button type="submit" disabled={!request.trim()} className="gap-2 rounded-full px-6"><Search className="h-4 w-4" />Build a recipe</Button>
