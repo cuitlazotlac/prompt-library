@@ -77,7 +77,7 @@ export function understandIntent(request: string): TaskDefinition {
 export function validateRecipeSpec(spec: RecipeSpec): spec is RecipeSpec {
   return Boolean(
     spec && spec.name.trim() && spec.description.trim() && spec.promptTemplate.trim()
-      && spec.questions.length > 0 && spec.questions.length <= 5
+      && spec.questions.length >= 4 && spec.questions.length <= 5
       && spec.questions.every((question) => question.key.trim() && question.label.trim() && questionTypes.has(question.type)
         && (question.type === "text" || question.type === "textarea" || Boolean(question.options?.length))),
   );
@@ -104,7 +104,41 @@ export function buildFallbackRecipe(request: string): Recipe {
       position: index + 1,
     };
   });
-  if (questions.length === 0) questions.push({ key: "additionalDetail", label: "What else would make the result more useful?", type: "textarea", required: true, position: 1 });
+  const supplementalQuestions: Record<TaskType, RecipeSpecQuestion[]> = {
+    communication: [
+      { key: "desiredOutcome", label: "What should the other person understand or do next?", type: "textarea", required: true, position: 0 },
+      { key: "tone", label: "What tone should the message have?", type: "radio", options: ["Warm and collaborative", "Clear and firm", "Formal and concise"], required: true, position: 0 },
+    ],
+    planning: [
+      { key: "successDefinition", label: "What would make this plan feel successful?", type: "textarea", required: true, position: 0 },
+      { key: "flexibility", label: "How much flexibility should the plan leave room for?", type: "radio", options: ["Keep it structured", "A balanced mix", "Keep it flexible"], required: true, position: 0 },
+    ],
+    decision: [
+      { key: "options", label: "What options are you considering?", type: "textarea", required: true, position: 0 },
+      { key: "decisionCriteria", label: "What matters most in this decision?", type: "textarea", required: true, position: 0 },
+    ],
+    practical: [
+      { key: "availableResources", label: "What resources or information do you already have?", type: "textarea", required: true, position: 0 },
+      { key: "format", label: "How would you like the result organized?", type: "radio", options: ["Short checklist", "Grouped sections", "Detailed step-by-step"], required: true, position: 0 },
+    ],
+    preparation: [
+      { key: "audience", label: "Who will be involved?", type: "text", required: true, position: 0 },
+      { key: "confidence", label: "What would help you feel prepared?", type: "textarea", required: true, position: 0 },
+    ],
+    general: [
+      { key: "audience", label: "Who is this for?", type: "text", required: true, position: 0 },
+      { key: "format", label: "What format would be most useful?", type: "text", required: true, position: 0 },
+    ],
+  };
+  for (const supplemental of supplementalQuestions[task.taskType]) {
+    if (questions.length >= 4) break;
+    if (questions.some((question) => question.key === supplemental.key)) continue;
+    questions.push({ ...supplemental, position: questions.length + 1 });
+  }
+  while (questions.length < 4) {
+    const position = questions.length + 1;
+    questions.push({ key: `additionalDetail${position}`, label: "What else would make the result more useful?", type: "textarea", required: true, position });
+  }
   const spec: RecipeSpec = {
     name: `${task.desiredOutput.charAt(0).toUpperCase() + task.desiredOutput.slice(1)}${task.audience ? ` for ${task.audience}` : ""}`,
     description: task.successCriteria[0],

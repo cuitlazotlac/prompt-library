@@ -17,7 +17,7 @@ describe("Recipe matching", () => {
 describe("Universal Recipe builder", () => {
   it("builds a structured fallback Recipe for an unmatched request", () => {
     const recipe = buildFallbackRecipe("Prepare a presentation for my community group");
-    expect(recipe.questions.length).toBeGreaterThanOrEqual(1);
+    expect(recipe.questions.length).toBeGreaterThanOrEqual(4);
     expect(recipe.questions.length).toBeLessThanOrEqual(5);
     expect(recipe.promptTemplate).toContain("Prepare a presentation for my community group");
     expect(recipe.questions.every((question) => question.recipeId === recipe.id)).toBe(true);
@@ -49,13 +49,17 @@ describe("Universal Recipe builder", () => {
   ])("creates a usable Recipe for %s", (request) => {
     const recipe = buildFallbackRecipe(request);
     expect(recipe.promptTemplate).toContain(request);
-    expect(recipe.questions.length).toBeGreaterThanOrEqual(1);
+    expect(recipe.questions.length).toBeGreaterThanOrEqual(4);
     expect(recipe.questions.length).toBeLessThanOrEqual(5);
   });
 });
 
 describe("Recipe questions and prompt generation", () => {
   const landlordRecipe = starterRecipes.find((recipe) => recipe.id === "landlord-email")!;
+
+  it("keeps every starter recipe at four or more questions", () => {
+    expect(starterRecipes.every((recipe) => recipe.questions.length >= 4)).toBe(true);
+  });
 
   it("keeps the V1 question types represented in the starter catalog", () => {
     expect(new Set(starterRecipes.flatMap((recipe) => recipe.questions.map((question) => question.type)))).toEqual(
