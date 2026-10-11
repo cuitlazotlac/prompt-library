@@ -14,9 +14,10 @@ interface GuidedQuestionFlowProps {
   onAnswersChange: (answers: RecipeAnswers) => void;
   onComplete: () => void;
   onStartOver: () => void;
+  requestContext?: string;
 }
 
-export function GuidedQuestionFlow({ recipe, answers, onAnswersChange, onComplete, onStartOver }: GuidedQuestionFlowProps) {
+export function GuidedQuestionFlow({ recipe, answers, onAnswersChange, onComplete, onStartOver, requestContext }: GuidedQuestionFlowProps) {
   const questions = useMemo(() => recipe.questions.slice().sort((a, b) => a.position - b.position), [recipe]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [validationMessage, setValidationMessage] = useState("");
@@ -90,7 +91,7 @@ export function GuidedQuestionFlow({ recipe, answers, onAnswersChange, onComplet
 
   return (
     <section className="mx-auto w-full max-w-xl">
-      <div className="mb-8 rounded-3xl border bg-card p-5 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Building a recipe for</p><h1 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">{recipe.name}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{recipe.description}</p></div>
+      <div className="mb-8 rounded-3xl border bg-card p-5 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Building a recipe</p><h1 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">For {requestContext?.trim() || recipe.name}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{recipe.description}</p></div>
       <div className="flex items-end justify-between gap-4"><div><p className="text-sm font-medium text-muted-foreground">Question {currentQuestionIndex + 1} of {questions.length}</p><p className="mt-1 text-xs text-muted-foreground">{completedCount} answered · {remainingCount} remaining</p></div><span className="text-sm font-medium text-muted-foreground">{progress}%</span></div>
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Recipe progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} /></div>
       <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{questionLabel}</h1><button type="button" onClick={askAnotherQuestion} className="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline"><RefreshCw className="h-3.5 w-3.5" />Ask another question</button>

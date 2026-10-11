@@ -173,7 +173,7 @@ export function RecipeFlow() {
         )}
 
         {step === "questions" && recipe && (
-          <GuidedQuestionFlow recipe={recipe} answers={answers} onAnswersChange={setAnswers} onComplete={generatePrompt} onStartOver={restart} />
+          <GuidedQuestionFlow recipe={recipe} requestContext={request || undefined} answers={answers} onAnswersChange={setAnswers} onComplete={generatePrompt} onStartOver={restart} />
         )}
 
         {step === "result" && recipe && (
