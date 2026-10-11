@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Pencil, SkipForward } from "lucide-react";
+import { ArrowLeft, ArrowRight, RefreshCw, SkipForward } from "lucide-react";
 import { Recipe } from "@/types/recipe";
 import { RecipeAnswers } from "@/lib/promptGenerator";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,6 @@ export function GuidedQuestionFlow({ recipe, answers, onAnswersChange, onComplet
   const [validationMessage, setValidationMessage] = useState("");
   const [skippedQuestions, setSkippedQuestions] = useState<Set<string>>(new Set());
   const [questionOverrides, setQuestionOverrides] = useState<Record<string, string>>({});
-  const [isChangingQuestion, setIsChangingQuestion] = useState(false);
-  const [questionDraft, setQuestionDraft] = useState("");
   const question = questions[currentQuestionIndex];
   const isFinalQuestion = currentQuestionIndex === questions.length - 1;
   const value = answers[question.key] ?? "";
@@ -64,17 +62,21 @@ export function GuidedQuestionFlow({ recipe, answers, onAnswersChange, onComplet
     advance();
   };
 
-  const beginQuestionChange = () => {
-    setQuestionDraft(questionLabel);
-    setIsChangingQuestion(true);
+  const askAnotherQuestion = () => {
+    const alternatives: Record<string, string[]> = {
+      recipient: ["What is your relationship with the person you are writing to?", "What would help this person understand your perspective?"],
+      situation: ["What context should the other person know?", "Which detail is most important to explain?"],
+      objective: ["What outcome would feel most helpful?", "What would you like to happen next?"],
+      tone: ["How should this come across to the reader?", "What feeling should the message leave them with?"],
+      priorities: ["What would make the biggest difference this week?", "Which tasks should get your attention first?"],
+      constraints: ["What should this plan make room for?", "What should the plan avoid or protect time for?"],
+    };
+    const options = alternatives[question.key] ?? ["What context would help us tailor the result?", "What would a useful outcome look like?", "Are there any preferences we should keep in mind?"];
+    const nextQuestion = options.find((option) => option !== questionLabel) ?? options[0];
+    setQuestionOverrides({ ...questionOverrides, [question.key]: nextQuestion });
+    onAnswersChange({ ...answers, [question.key]: "" });
+    setSkippedQuestions((current) => { const next = new Set(current); next.delete(question.key); return next; });
     setValidationMessage("");
-  };
-
-  const saveQuestionChange = (event: FormEvent) => {
-    event.preventDefault();
-    if (!questionDraft.trim()) return;
-    setQuestionOverrides({ ...questionOverrides, [question.key]: questionDraft.trim() });
-    setIsChangingQuestion(false);
   };
 
   const goBack = () => {
@@ -90,7 +92,7 @@ export function GuidedQuestionFlow({ recipe, answers, onAnswersChange, onComplet
     <section className="mx-auto w-full max-w-xl">
       <div className="flex items-end justify-between gap-4"><div><p className="text-sm font-medium text-muted-foreground">Question {currentQuestionIndex + 1} of {questions.length}</p><p className="mt-1 text-xs text-muted-foreground">{completedCount} answered · {remainingCount} remaining</p></div><span className="text-sm font-medium text-muted-foreground">{progress}%</span></div>
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Recipe progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} /></div>
-      {isChangingQuestion ? <form onSubmit={saveQuestionChange} className="mt-6 rounded-2xl border bg-card p-4"><Label htmlFor="question-edit">Rewrite this question</Label><Input id="question-edit" value={questionDraft} onChange={(event) => setQuestionDraft(event.target.value)} autoFocus className="mt-2 h-12 rounded-xl" /><div className="mt-3 flex gap-2"><Button type="submit" className="rounded-full gap-2"><Check className="h-4 w-4" />Use this question</Button><Button type="button" variant="ghost" onClick={() => setIsChangingQuestion(false)} className="rounded-full">Cancel</Button></div></form> : <><h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{questionLabel}</h1><button type="button" onClick={beginQuestionChange} className="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline"><Pencil className="h-3.5 w-3.5" />Change this question</button></>}
+      <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{questionLabel}</h1><button type="button" onClick={askAnotherQuestion} className="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline"><RefreshCw className="h-3.5 w-3.5" />Ask another question</button>
       <p className="mt-3 text-sm text-muted-foreground">{recipe.name}</p>
 
       <form onSubmit={continueFlow} className="mt-10">
