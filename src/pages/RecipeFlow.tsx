@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GuidedQuestionFlow } from "@/components/GuidedQuestionFlow";
 import { getRecipes } from "@/lib/recipeLibrary";
 import { getPrompts, getProjects, savePrompt, saveRecipes } from "@/lib/recipeLibrary";
-import { deterministicRecipeBuilder, understandIntent } from "@/lib/recipeBuilder";
+import { deterministicRecipeBuilder } from "@/lib/recipeBuilder";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Step = "request" | "questions" | "result";
@@ -89,9 +89,7 @@ export function RecipeFlow() {
   const findRecipe = (event: FormEvent) => {
     event.preventDefault();
     const match = findBestRecipe(request, starterRecipes);
-    const task = understandIntent(request);
-    const hasConcreteContext = request.trim().split(/\s+/).length >= 6 || task.constraints.length > 0;
-    const nextRecipe = match && !hasConcreteContext ? match.recipe : deterministicRecipeBuilder.build(request);
+    const nextRecipe = match?.recipe ?? deterministicRecipeBuilder.build(request);
     setRecipe(nextRecipe);
     setAnswers({});
     setSaveName(nextRecipe.name);

@@ -29,7 +29,7 @@ export const starterRecipes: Recipe[] = [
     category: "Work",
     projectId: "work",
     tags: ["email", "job", "career"],
-    keywords: ["job", "application", "cover letter", "hiring", "career", "resume"],
+    keywords: ["job", "application", "apply", "role", "cover letter", "hiring", "career", "resume"],
     questions: [
       { id: "job-role", recipeId: "job-application", key: "role", label: "What role are you applying for?", type: "text", required: true, position: 1 },
       { id: "job-company", recipeId: "job-application", key: "company", label: "What is the company or organization?", type: "text", required: true, position: 2 },

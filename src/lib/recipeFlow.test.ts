@@ -9,6 +9,10 @@ describe("Recipe matching", () => {
     expect(findBestRecipe("Write a difficult email to my landlord", starterRecipes)?.recipe.id).toBe("landlord-email");
   });
 
+  it("understands a natural job request as the job application recipe", () => {
+    expect(findBestRecipe("Apply for a job I really want", starterRecipes)?.recipe.id).toBe("job-application");
+  });
+
   it("returns no match when the catalog has no relevant Recipe", () => {
     expect(findBestRecipe("Help me plan a wedding menu", starterRecipes)).toBeNull();
   });
